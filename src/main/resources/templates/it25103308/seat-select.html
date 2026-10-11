@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.seat-select-wrapper})}">
+<head>
+  <title>Select Class & Seats | TrainBook</title>
+</head>
+<body>
+  <div class="seat-select-wrapper container container-sm">
+    <!-- ================= CHECKOUT STEPPER ================= -->
+    <div class="stepper">
+      <div class="step-item active">
+        <div class="step-number">1</div>
+        <span>Select Seats</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-number">2</div>
+        <span>Payment</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-number">3</div>
+        <span>E-Ticket</span>
+      </div>
+    </div>
+
+    <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: var(--radius-sm); padding: 12px 18px; margin-bottom: var(--spacing-lg); color: #795548;">
+      <strong>Ten-minute seat hold</strong>
+      <div style="font-size: 0.88rem;">Your hold starts after you continue to payment and the reservation succeeds. Seats remain available to others until then.</div>
+    </div>
+    <div th:if="${bookingError != null}" class="alert alert-danger" role="alert" style="margin-bottom: var(--spacing-lg);">
+      <span th:text="${bookingError}">Your booking could not be created. Please review your selection.</span>
+    </div>
+    <div th:if="${canReserve != true}" class="alert alert-info">
+      <div>Sign in before reserving seats. After sign-in, choose seats from the latest availability for this journey.</div>
+      <a th:href="@{/booking/sign-in(scheduleId=${bookingRequest.scheduleId},date=${travelDateIso},seatClass=${bookingRequest.seatClass})}" class="btn btn-primary btn-sm">Sign In to Continue</a>
+    </div>
+    <div th:if="${journeyUnavailable == true}" class="alert alert-danger" role="alert">This departure is unavailable on the selected date or has already departed. <a th:href="@{/trains/search}">Search another train</a></div>
+    <noscript><div class="alert alert-danger">Enable JavaScript to view available seats and make a selection.</div></noscript>
+    <!-- ================= TRAIN ITINERARY SUMMARY CARD ================= -->
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+      <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1a4473 100%); color: #ffffff;">
+        <div>
+          <span style="font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; color: #67b7f7; font-weight: 700;">Selected Journey</span>
+          <h2 style="color: #ffffff; font-size: 1.4rem; margin-top: 2px;" th:text="${schedule != null and schedule.trainName != null ? schedule.trainName : 'Udarata Menike (Exp 1015)'}">
+            Udarata Menike (Exp 1015)
+          </h2>
+        </div>
+        <span class="badge badge-ontime">Scheduled Service</span>
+      </div>
+
+      <div class="card-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border-light);">
+          <div>
+            <div style="font-size: 0.82rem; color: var(--color-text-muted);">Departure Station & Time</div>
+            <div style="font-size: 1.2rem; font-weight: 800; color: var(--color-primary);" th:text="${schedule != null and schedule.departureTime != null ? schedule.departureTime : '05:55 AM'}">05:55 AM</div>
+            <div class="form-hint" th:if="${schedule.departurePlatform != null}" th:text="${schedule.departurePlatform}"></div>
+            <div style="font-weight: 600;" th:text="${schedule != null and schedule.origin != null ? schedule.origin : (origin != null ? origin : 'Colombo Fort')}">Colombo Fort</div>
+          </div>
+
+          <div style="text-align: center; color: var(--color-text-muted);">
+            <span style="font-size: 0.82rem; font-weight: 600;">➔ Direct ➔</span>
+            <div style="font-size: 0.8rem;" th:text="${date != null ? date : (param.date != null ? param.date : 'Today')}">2026-08-18</div>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 0.82rem; color: var(--color-text-muted);">Arrival Station & Time</div>
+            <div style="font-size: 1.2rem; font-weight: 800; color: var(--color-primary);" th:text="${schedule != null and schedule.arrivalTime != null ? schedule.arrivalTime : '09:20 AM'}">09:20 AM</div>
+            <div class="form-hint" th:if="${schedule.arrivalDayOffset == 1}">Arrives next day</div>
+            <div class="form-hint" th:if="${schedule.arrivalPlatform != null}" th:text="${schedule.arrivalPlatform}"></div>
+            <div style="font-weight: 600;" th:text="${schedule != null and schedule.destination != null ? schedule.destination : (destination != null ? destination : 'Kandy')}">Kandy</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 0.88rem;">
+          <span style="color: var(--color-text-muted);">Travel Date: <strong style="color: var(--color-text);" th:text="${date != null ? date : (param.date != null ? param.date : 'Selected Date')}">2026-08-18</strong></span>
+          <span style="color: var(--color-text-muted);">Train Type: <strong style="color: var(--color-text);" th:text="${schedule != null and schedule.trainType != null ? schedule.trainType : 'Express Intercity'}">Express</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning" data-persistent th:if="${journeyStatus == 'DELAYED'}">This departure is delayed<span th:if="${journeyDelay > 0}" th:text="${' by '+journeyDelay+' minutes'}"></span>. Booking still closes at its planned departure; payment holds remain ten minutes.</div>
+    <div class="alert alert-info" th:if="${journeyLabel != null}" th:text="${journeyLabel}"></div>
+    <div class="card" style="margin-bottom:20px" th:if="${journeyStops != null and !journeyStops.empty}"><div class="card-header"><h3>Intermediate stops</h3></div><div class="table-responsive"><table class="table"><thead><tr><th>Station</th><th>Arrival</th><th>Departure</th><th>Platform</th></tr></thead><tbody><tr th:each="stop : ${journeyStops}"><td th:text="${stop.station}"></td><td th:text="${stop.arrival+(stop.dayOffset == 1 ? ' (+1 day)' : '')}"></td><td th:text="${stop.departure+(stop.departureDayOffset == 1 ? ' (+1 day)' : '')}"></td><td th:text="${stop.platform}"></td></tr></tbody></table></div></div>
+    <!-- ================= SEAT & PASSENGER SELECTION FORM ================= -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Choose Travel Class & Seats</h3>
+      </div>
+      <div class="card-body">
+        <form id="seatBookingForm" th:action="@{/booking}" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+          
+          <!-- Hidden Schedule and Date Inputs -->
+          <input type="hidden" name="scheduleId" th:value="${schedule.id}" />
+          <input type="hidden" name="travelDate" th:value="${travelDateIso}" />
+
+          <!-- Class Selection Cards (Radio buttons) -->
+          <div class="form-group">
+            <label class="form-label">Select Travel Class</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+              <!-- First Class Card -->
+              <label class="seat-class-card" style="display: block;">
+                <input type="radio" 
+                       name="seatClass" 
+                       value="FIRST" 
+                       th:data-price="${schedule != null and schedule.firstClassFare != null ? schedule.firstClassFare : 0}"
+                       th:checked="${bookingRequest.seatClass == 'FIRST'}"
+                       style="margin-right: 6px;">
+                <strong style="color: var(--color-primary); font-size: 1.05rem;">1st Class (AC)</strong>
+                <div style="font-size: 0.82rem; color: var(--color-text-muted); margin-top: 4px;">
+                  Air-Conditioned, Reserved Seating, Reclining Seats
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-weight: 800; color: var(--color-primary);" th:text="${schedule != null and schedule.firstClassFare != null ? 'LKR ' + schedule.firstClassFare : 'Fare unavailable'}">Fare unavailable</span>
+                  <span class="badge badge-success" th:text="${firstClassAvailable + ' left'}">0 left</span>
+                </div>
+              </label>
+
+              <!-- Second Class Card -->
+              <label class="seat-class-card" style="display: block;">
+                <input type="radio" 
+                       name="seatClass" 
+                       value="SECOND" 
+                       th:checked="${bookingRequest.seatClass == 'SECOND'}"
+                       th:data-price="${schedule != null and schedule.secondClassFare != null ? schedule.secondClassFare : 0}"
+                       style="margin-right: 6px;">
+                <strong style="color: var(--color-primary); font-size: 1.05rem;">2nd Class Reserved</strong>
+                <div style="font-size: 0.82rem; color: var(--color-text-muted); margin-top: 4px;">
+                  Cushioned Seating, Openable Windows, Overhead Storage
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-weight: 800; color: var(--color-primary);" th:text="${schedule != null and schedule.secondClassFare != null ? 'LKR ' + schedule.secondClassFare : 'Fare unavailable'}">Fare unavailable</span>
+                  <span class="badge badge-success" th:text="${secondClassAvailable + ' left'}">0 left</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Stop-Sales Alert when Selected Class is Sold Out -->
+          <div id="soldOutBanner" class="alert alert-danger" role="status" style="display: none; margin-bottom: var(--spacing-md);">
+            <span style="font-size: 1.3rem;">🚫</span>
+            <div>
+              <strong>This class is currently unavailable</strong>
+              <div id="availabilityMessage">Please choose another class or date.</div>
+            </div>
+          </div>
+
+          <!-- ================= INTERACTIVE VISUAL COACH SEAT MAP WIDGET ================= -->
+          <div style="margin: var(--spacing-lg) 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--spacing-md); background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <strong style="color: var(--color-primary); font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                  <span>💺</span> Interactive Coach Seat Layout
+                </strong>
+                <div style="font-size: 0.8rem; color: var(--color-text-muted);">Choose up to six seats. Use Tab and Enter or Space to select seats with your keyboard.</div>
+              </div>
+
+              <!-- Seat Status Legend -->
+              <div style="display: flex; gap: 12px; font-size: 0.78rem; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span style="width: 14px; height: 14px; border-radius: 3px; background: #e8f5e9; border: 1px solid #81c784; display: inline-block;"></span> Available
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span style="width: 14px; height: 14px; border-radius: 3px; background: #fff9c4; border: 1px solid #fbc02d; display: inline-block;"></span> Selected
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span style="width: 14px; height: 14px; border-radius: 3px; background: #ffebee; border: 1px solid #e57373; display: inline-block;"></span> Booked / Locked
+                </span>
+              </div>
+            </div>
+
+            <!-- Visual Coach Diagram Container -->
+            <div style="background: #f1f5f9; border-radius: 8px; padding: 14px; border: 1px solid #cbd5e1; overflow-x: auto;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; font-weight: 700; color: #475569;">
+                <span>◀ Locomotive / Front</span>
+                <span id="coachLabel">Reserved seating</span>
+                <span>Rear Compartment ▶</span>
+              </div>
+
+              <!-- Seat Grid Layout -->
+              <div id="seatGrid" style="display: grid; grid-template-columns: repeat(10, minmax(42px, 1fr)); gap: 8px; justify-items: center; align-items: center; min-width: 480px;">
+                <!-- Generated from the selected class capacity and occupied seats. -->
+              </div>
+            </div>
+
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 6px;">
+              <span>Selected Seats: <strong id="selectedSeatsLabel" style="color: var(--color-primary); font-family: var(--font-mono);">None selected</strong></span>
+              <span id="seatSelectionNotice" role="status" aria-live="polite" tabindex="-1" style="color: #64748b; font-size: 0.8rem;">Select your seats to continue</span>
+            </div>
+            <a th:href="@{/booking/seats(scheduleId=${schedule.id},date=${travelDateIso})}" style="display: inline-block; margin-top: 10px; font-size: 0.85rem;">Refresh seat availability</a>
+            <input type="hidden" id="seatNumbersInput" name="seatNumbers" value="" />
+          </div>
+
+          <!-- Seat Count & Primary Passenger -->
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="seatCount">Number of Seats</label>
+              <select id="seatCount" name="seatCount" class="form-select">
+                <option value="1" selected>1 Passenger</option>
+                <option value="2">2 Passengers</option>
+                <option value="3">3 Passengers</option>
+                <option value="4">4 Passengers</option>
+                <option value="5">5 Passengers</option>
+                <option value="6">6 Passengers (Max)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="passengerName">Primary Passenger Name</label>
+              <input type="text" 
+                     id="passengerName" 
+                     name="passengerName" th:value="${bookingRequest != null ? bookingRequest.passengerName : ''}"
+                     class="form-control" 
+                     placeholder="Full name as on National ID / Passport" 
+                     minlength="2" maxlength="100" autocomplete="name" aria-describedby="passengerNameError"
+                     required>
+              <small id="passengerNameError" class="passenger-field-error" role="status" hidden></small>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="documentType">Document Type</label>
+              <select id="documentType" name="documentType" class="form-select" required>
+                <option value="NIC" th:selected="${bookingRequest.documentType == null or bookingRequest.documentType == 'NIC'}">NIC (Sri Lanka)</option>
+                <option value="SRI_LANKAN_PASSPORT" th:selected="${bookingRequest.documentType == 'SRI_LANKAN_PASSPORT'}">Passport (Sri Lanka)</option>
+                <option value="FOREIGN_PASSPORT" th:selected="${bookingRequest.documentType == 'FOREIGN_PASSPORT'}">Passport (another country)</option>
+              </select>
+              <label id="documentNumberLabel" class="form-label" for="passengerNic" style="margin-top: 12px;">NIC Number</label>
+              <input type="text" 
+                     id="passengerNic" 
+                     name="passengerNic" th:value="${bookingRequest != null ? bookingRequest.passengerNic : ''}"
+                     class="form-control" 
+                     placeholder="e.g. 200300901022 or 855420159V" maxlength="12"
+                     pattern="(?:[0-9]{9}[VvXx]|[0-9]{12})" autocomplete="off" spellcheck="false"
+                     aria-describedby="documentNumberHint passengerNicError"
+                     required>
+              <small id="documentNumberHint">12 digits, or 9 digits followed by V or X.</small>
+              <small id="passengerNicError" class="passenger-field-error" role="status" hidden></small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contactPhone">Contact Phone Number (Sri Lanka)</label>
+              <input type="tel" 
+                     id="contactPhone" 
+                     name="contactPhone" th:value="${bookingRequest != null ? bookingRequest.contactPhone : ''}"
+                     class="form-control" 
+                     placeholder="e.g. 0771234567 or +94771234567" maxlength="20" autocomplete="tel"
+                     aria-describedby="contactPhoneHint contactPhoneError"
+                     required>
+              <small id="contactPhoneHint">10 digits, or use +94 / 0094 without the leading 0. Spaces and hyphens are allowed.</small>
+              <small id="contactPhoneError" class="passenger-field-error" role="status" hidden></small>
+            </div>
+          </div>
+
+          <!-- Calculation Summary Box -->
+          <div style="background-color: var(--color-surface-muted); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: var(--spacing-md); margin-top: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; color: var(--color-text-muted);">
+              <span>Fare Per Seat:</span>
+              <span id="farePerSeatDisplay" style="font-weight: 600; color: var(--color-text);">LKR 1,800.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--color-border); padding-top: 8px;">
+              <span style="font-weight: 700; color: var(--color-primary); font-size: 1.05rem;">Estimated Total Amount:</span>
+              <span id="totalFareDisplay" style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary);">LKR 1,800.00</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <a th:href="@{/trains/search}" class="btn btn-secondary">← Back to Search</a>
+            <button id="btnSubmitBooking" type="submit" th:type="${canReserve == true ? 'submit' : 'button'}"
+                    th:attr="data-sign-in-url=${canReserve == true} ? null : @{/booking/sign-in(scheduleId=${bookingRequest.scheduleId},date=${travelDateIso},seatClass=${bookingRequest.seatClass})}"
+                    th:text="${canReserve == true ? 'Continue to Payment ➔' : 'Sign In to Continue'}" disabled class="btn btn-accent btn-lg">
+              Continue to Payment ➔
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  <style>
+    .seat-select-wrapper .reservation-seat { width: 44px; min-height: 44px; padding: 4px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+    .seat-select-wrapper .reservation-seat.is-available { background: #e8f5e9; border: 1.5px solid #81c784; color: #2e7d32; }
+    .seat-select-wrapper .reservation-seat.is-selected { background: #fff9c4; border: 2px solid #fbc02d; color: #8c4a00; box-shadow: 0 2px 6px rgba(251,192,45,.4); }
+    .seat-select-wrapper .reservation-seat.is-occupied { background: #ffebee; border: 1.5px solid #ef5350; color: #c62828; cursor: not-allowed; }
+    .seat-select-wrapper .reservation-seat:focus-visible { outline: 3px solid #1769aa; outline-offset: 2px; }
+    .seat-select-wrapper #btnSubmitBooking:disabled { opacity: .55; cursor: not-allowed; }
+    .seat-select-wrapper .passenger-field-error { display: block; color: #b42318; margin-top: 4px; }
+    .seat-select-wrapper [hidden] { display: none !important; }
+  </style>
+  <script th:src="@{/js/seat-selection.js}"></script>
+  <script th:src="@{/js/passenger-details.js}"></script>
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    PassengerDetails.mount();
+    TrainSeatSelection.mount({
+      classes: {
+        FIRST: {
+          capacity: /*[[${firstClassCapacity}]]*/ 0,
+          available: /*[[${firstClassAvailable}]]*/ 0,
+          occupied: /*[[${bookedFirstSeats}]]*/ [],
+          warning: /*[[${firstClassAllocationWarning}]]*/ null
+        },
+        SECOND: {
+          capacity: /*[[${secondClassCapacity}]]*/ 0,
+          available: /*[[${secondClassAvailable}]]*/ 0,
+          occupied: /*[[${bookedSecondSeats}]]*/ [],
+          warning: /*[[${secondClassAllocationWarning}]]*/ null
+        }
+      },
+      initialClass: /*[[${bookingRequest != null ? bookingRequest.seatClass : 'FIRST'}]]*/ 'FIRST',
+      initialCount: /*[[${bookingRequest != null ? bookingRequest.numberOfSeats : 1}]]*/ 1,
+      bookingError: /*[[${bookingError}]]*/ null
+    });
+    /*]]>*/
+  </script>
+  </div>
+</body>
+</html>

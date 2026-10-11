@@ -1,0 +1,13 @@
+﻿<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin-base :: layout(~{::div.admin-map-wrapper})}">
+<head>
+  <title>Live Train Tracking Map | Admin Console</title>
+</head>
+<body>
+  <div class="admin-map-wrapper" style="width: 100%;">
+    <div th:replace="~{it25102925/live-map-fragment :: mapContent(true)}"></div>
+  </div>
+</body>
+</html>

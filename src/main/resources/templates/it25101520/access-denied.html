@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::div.access-page})}">
+<body><div class="access-page container" style="max-width:680px;">
+<div class="card"><div class="card-body">
+<h2>Access Restricted</h2>
+<p>This account does not have permission to perform this action. If you need staff or administrator access, contact the project administrator.</p>
+<a th:href="@{/trains/search}" class="btn btn-primary">Search Trains</a>
+<a th:href="@{/passenger/profile}" class="btn btn-secondary">My Account</a>
+</div></div></div></body></html>

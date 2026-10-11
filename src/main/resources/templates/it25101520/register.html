@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account | TrainBook</title>
+  
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+  <link rel="stylesheet" th:href="@{/css/password-fields.css}" href="/css/password-fields.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-card" style="max-width: 520px;">
+    <div class="auth-header">
+      <div class="auth-logo">🚂</div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Join TrainBook to reserve seats and get real-time train alerts</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="alert alert-danger" th:if="${errorMessage != null}">
+      <span>⚠️</span>
+      <span th:text="${errorMessage}">Registration error occurred.</span>
+    </div>
+
+    <!-- Registration Form -->
+    <form th:action="@{/register}" th:object="${registerRequest}" method="post">
+      <!-- CSRF Token -->
+      <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+        <!-- First Name -->
+        <div class="form-group">
+          <label class="form-label" for="firstName">First Name</label>
+          <input type="text" 
+                 id="firstName" 
+                 th:field="*{firstName}" 
+                 class="form-control" 
+                 placeholder="e.g. Anfas" maxlength="100" autocomplete="given-name" data-account-field="name" 
+                 required>
+          <div class="form-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}">First name required</div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-group">
+          <label class="form-label" for="lastName">Last Name</label>
+          <input type="text" 
+                 id="lastName" 
+                 th:field="*{lastName}" 
+                 class="form-control" 
+                 placeholder="e.g. Perera" maxlength="100" autocomplete="family-name" data-account-field="name" 
+                 required>
+          <div class="form-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Last name required</div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <div class="input-icon-group">
+          <span class="icon">✉️</span>
+          <input type="email" 
+                 id="email" 
+                 th:field="*{email}" 
+                 class="form-control" 
+                 placeholder="name@example.com" maxlength="254" autocomplete="email" 
+                 required>
+        </div>
+        <div class="form-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Valid email required</div>
+      </div>
+
+      <!-- Phone Number -->
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone Number</label>
+        <div class="input-icon-group">
+          <span class="icon">📞</span>
+          <input type="tel" maxlength="20" autocomplete="tel" data-account-field="phone" 
+                 id="phone" 
+                 th:field="*{phone}" 
+                 class="form-control" 
+                 placeholder="0771234567" 
+                 required>
+        </div>
+        <div class="form-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Valid phone number required</div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-icon-group password-input-group">
+          <span class="icon">🔒</span>
+          <input type="password" 
+                 id="password" 
+                 name="password" data-account-field="password" 
+                 class="form-control" 
+                 placeholder="At least 8 characters"
+                 minlength="8"
+                 autocomplete="new-password" maxlength="72" 
+                 required>
+          <button type="button" class="password-visibility-button" data-password-toggle="password"
+                  aria-controls="password" aria-label="Show password" aria-pressed="false" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <path data-eye-slash d="m3 3 18 18" hidden/>
+            </svg>
+          </button>
+        </div>
+        <div class="form-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password required</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="confirmPassword">Confirm Password</label>
+        <div class="input-icon-group password-input-group">
+          <span class="icon" aria-hidden="true">🔒</span>
+          <input type="password" id="confirmPassword" name="confirmPassword" class="form-control"
+                 placeholder="Enter the same password again" autocomplete="new-password" maxlength="72" minlength="8"
+                 aria-describedby="confirmPasswordError" required>
+          <button type="button" class="password-visibility-button" data-password-toggle="confirmPassword"
+                  aria-controls="confirmPassword" aria-label="Show confirm password" aria-pressed="false" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <path data-eye-slash d="m3 3 18 18" hidden/>
+            </svg>
+          </button>
+        </div>
+        <div id="confirmPasswordError" class="form-error" role="alert" th:hidden="${!#fields.hasErrors('confirmPassword')}">
+          <span th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">Passwords do not match.</span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+        <label class="form-check">
+          <input type="checkbox" th:field="*{acceptedTerms}" required>
+          <span style="font-size: 0.85rem;">I agree to the
+            <a th:href="@{/terms}" href="/terms" target="_blank" rel="noopener" aria-label="Terms of Service (opens in a new tab)">Terms of Service</a> and
+            <a th:href="@{/privacy}" href="/privacy" target="_blank" rel="noopener" aria-label="Privacy Policy (opens in a new tab)">Privacy Policy</a>
+          </span>
+        </label>
+      </div>
+
+      <div class="form-error" th:if="${#fields.hasErrors('acceptedTerms')}" th:errors="*{acceptedTerms}"></div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Already have an account?</span>
+      <a th:href="@{/login}" style="font-weight: 600; margin-left: 4px;">Sign In</a>
+      <div style="margin-top: 12px;">
+        <a th:href="@{/trains/search}" style="color: var(--color-text-muted); font-size: 0.85rem;">← Back to Home / Search</a>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/account-fields.js}" src="/js/account-fields.js" defer></script>
+  <script th:src="@{/js/password-fields.js}" src="/js/password-fields.js" defer></script>
+  <script th:src="@{/js/main.js}" src="/js/main.js"></script>
+</body>
+</html>

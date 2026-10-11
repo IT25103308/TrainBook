@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | TrainBook</title>
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+</head>
+<body class="auth-page">
+  <main class="auth-card" style="max-width: 620px;" aria-labelledby="policyTitle">
+    <header class="auth-header">
+      <h1 id="policyTitle" class="auth-title">Privacy Policy</h1>
+      <p class="auth-subtitle">TrainBook student project · Short summary</p>
+    </header>
+    <p>We use the details you enter to manage accounts, reservations and tickets in this project demonstration.</p>
+    <ul style="padding-left: 20px; line-height: 1.7;">
+      <li style="margin-bottom: 12px;">Account records contain your name, email and phone number. Passwords are stored as hashes, not readable text.</li>
+      <li style="margin-bottom: 12px;">Booking records include passenger details, NIC or passport number, contact phone, journey, seats and payment status.</li>
+      <li style="margin-bottom: 12px;">Payments use dummy card details. Full card numbers and CVVs are not saved in payment records.</li>
+      <li>Session cookies support sign-in. You can view and edit your profile. Use test personal details for the demonstration.</li>
+    </ul>
+    <nav class="auth-footer" aria-label="Policy navigation">
+      <a th:href="@{/terms}" href="/terms">Terms of Service</a>
+      <span aria-hidden="true"> · </span>
+      <a th:href="@{/register}" href="/register">Create an account</a>
+      <div style="margin-top: 12px;"><a th:href="@{/trains/search}" href="/trains/search">Back to TrainBook</a></div>
+    </nav>
+  </main>
+</body>
+</html>

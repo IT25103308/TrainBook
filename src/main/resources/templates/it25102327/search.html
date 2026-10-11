@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.search-page-wrapper})}">
+<head>
+  <title>Find Trains & Book Tickets | TrainBook</title>
+</head>
+<body>
+  <div class="search-page-wrapper">
+    <!-- ================= HERO SEARCH SECTION ================= -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">Find & Book Your Train Tickets</h1>
+          <p class="hero-subtitle">Fast, seamless online train ticket reservation across all Sri Lanka Railways lines</p>
+
+          <div class="search-box-card">
+            <form th:action="@{/trains/search}" method="get" id="trainSearchForm">
+              <div class="search-validation-error" th:if="${searchError != null}" role="alert" th:text="${searchError}"></div>
+              <div class="search-grid">
+                <div class="form-group">
+                  <label class="form-label" for="originStation">From (Origin)</label>
+                  <div class="station-picker">
+                    <select id="originStation" name="origin" class="form-select" data-station-picker required>
+                      <option value="">Choose origin</option>
+                      <option th:each="station : ${stations}" th:value="${station}" th:text="${station}" th:selected="${#strings.equalsIgnoreCase(origin, station)}"></option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="destinationStation">To (Destination)</label>
+                  <div class="station-picker">
+                    <select id="destinationStation" name="destination" class="form-select" data-station-picker required>
+                      <option value="">Choose destination</option>
+                      <option th:each="station : ${stations}" th:value="${station}" th:text="${station}" th:selected="${#strings.equalsIgnoreCase(destination, station)}"></option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="travelDate">Travel Date</label>
+                  <input type="date" id="travelDate" name="date" class="form-control" th:value="${#temporals.format(date, 'yyyy-MM-dd')}" th:min="${#temporals.format(today, 'yyyy-MM-dd')}" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="seatClass">Class</label>
+                  <select id="seatClass" name="seatClass" class="form-select">
+                    <option value="" th:selected="${seatClass == ''}">All Classes</option>
+                    <option value="FIRST" th:selected="${seatClass == 'FIRST'}">1st Class (AC)</option>
+                    <option value="SECOND" th:selected="${seatClass == 'SECOND'}">2nd Class Reserved</option>
+                  </select>
+                </div>
+                <div class="search-submit">
+                  <button type="submit" class="btn btn-accent btn-lg btn-block"><span aria-hidden="true">🔍</span> Search Trains</button>
+                </div>
+              </div>
+              <p class="search-hint">Choose both stations. Type a station name to filter the dropdown.</p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESULTS SECTION ================= -->
+    <section class="container" style="padding-top: var(--spacing-xl); padding-bottom: var(--spacing-xl);">
+      
+      <!-- When Search Results Are Present -->
+      <div th:if="${trainResults != null}">
+        <div class="results-header">
+          <div>
+            <h2>Available Trains</h2>
+            <p style="color: var(--color-text-muted);" 
+               th:text="${'Showing ' + (trainResults.size()) + ' train schedule(s) for ' + (origin != null and !origin.isBlank() ? origin : 'Any Station') + ' ➔ ' + (destination != null and !destination.isBlank() ? destination : 'Any Station') + ' on ' + #temporals.format(date, 'dd MMM yyyy')}">
+              Showing available trains for your route
+            </p>
+          </div>
+          <div>
+            <span class="badge badge-primary" th:text="${trainResults.size() + ' Results Found'}">3 Results Found</span>
+          </div>
+        </div>
+
+        <!-- Train Result Cards Loop -->
+        <div th:if="${not trainResults.empty}">
+          <div class="train-card" th:each="train : ${trainResults}">
+            <!-- Col 1: Train Info -->
+            <div class="train-info-col">
+              <div class="train-name">
+                <span>🚆</span>
+                <span th:text="${train.trainName != null ? train.trainName : 'Express Train'}">Udarata Menike</span>
+              </div>
+              <div class="train-number" th:text="${'Train #' + (train.trainNumber != null ? train.trainNumber : '1015')}">Train #1015</div>
+              <div style="margin-top: 8px;">
+                <span class="badge badge-ontime" th:if="${train.status == null or train.status == 'ON_TIME'}">● On Time</span>
+                <span class="badge badge-primary" th:if="${train.status == 'SCHEDULED'}">Scheduled</span>
+                <span class="badge badge-delayed" th:if="${train.status == 'DELAYED'}">● Delayed</span>
+                <span class="badge badge-cancelled" th:if="${train.status == 'CANCELLED'}">● Cancelled</span>
+              </div>
+              <p class="form-hint" th:if="${train.status == 'DELAYED'}">Times shown are scheduled. Check travel alerts before departure.</p>
+            </div>
+
+            <!-- Col 2: Times & Duration -->
+            <div class="train-timing-col">
+              <div class="station-time">
+                <div class="time" th:text="${train.departureTime != null ? train.departureTime : '05:55 AM'}">05:55 AM</div>
+                <div class="station-name" th:text="${train.origin != null ? train.origin : (param.origin != null ? param.origin : 'Colombo Fort')}">Colombo Fort</div>
+              </div>
+
+              <div class="timing-divider">
+                <span class="duration-tag" th:text="${train.duration != null ? train.duration : '3h 25m'}">3h 25m</span>
+                <div class="timing-line"></div>
+                <span style="font-size: 0.72rem; color: var(--color-text-muted);">Direct</span>
+              </div>
+
+              <div class="station-time">
+                <div class="time" th:text="${train.arrivalTime != null ? train.arrivalTime : '09:20 AM'}">09:20 AM</div>
+                <div class="form-hint" th:if="${train.arrivalDayOffset == 1}">Arrives next day</div>
+                <div class="station-name" th:text="${train.destination != null ? train.destination : (param.destination != null ? param.destination : 'Kandy')}">Kandy</div>
+              </div>
+            </div>
+
+            <!-- Col 3: Seat Availability -->
+            <div class="train-seats-col">
+              <div class="seat-avail-tag">
+                <span style="font-weight: 600;">1st Class (AC):</span>
+                <span th:style="${train.availableFirstClassSeats > 0 ? 'color: var(--color-success); font-weight: 700;' : 'color: var(--color-text-muted); font-weight: 700;'}" th:text="${train.availableFirstClassSeats > 0 ? train.availableFirstClassSeats + ' seats' : 'No seats'}">No seats</span>
+              </div>
+              <div class="seat-avail-tag">
+                <span style="font-weight: 600;">2nd Class Reserved:</span>
+                <span th:style="${train.availableSecondClassSeats > 0 ? 'color: var(--color-success); font-weight: 700;' : 'color: var(--color-text-muted); font-weight: 700;'}" th:text="${train.availableSecondClassSeats > 0 ? train.availableSecondClassSeats + ' seats' : 'No seats'}">No seats</span>
+              </div>
+            </div>
+
+            <!-- Col 4: Price & Book CTA -->
+            <div class="train-action-col">
+              <div>
+                <span class="fare-label" th:text="${seatClass != '' and train.selectedClassAvailable ? 'Selected class fare' : 'Available classes from'}">Available classes from</span>
+                <div class="fare-display" th:text="${train.formattedFare}">
+                  LKR 1,200
+                </div>
+              </div>
+              <p class="class-warning" th:if="${seatClass != '' and !train.selectedClassAvailable}" role="status"
+                 th:text="${train.selectedClassLabel + ' is unavailable. Choose another class.'}"></p>
+              <a th:if="${seatClass != '' and train.selectedClassAvailable}"
+                 th:href="@{/booking/seats(scheduleId=${train.scheduleId}, date=${#temporals.format(date, 'yyyy-MM-dd')}, seatClass=${seatClass})}"
+                 class="btn btn-accent btn-block">
+                Book Now ➔
+              </a>
+              <a th:if="${train.firstClassBookable and seatClass != 'FIRST'}" class="btn btn-outline btn-sm btn-block class-choice"
+                 th:href="@{/booking/seats(scheduleId=${train.scheduleId},date=${#temporals.format(date,'yyyy-MM-dd')},seatClass='FIRST')}">
+                <span>Choose 1st Class (AC)</span><span th:text="${train.formattedFirstClassFare}"></span>
+              </a>
+              <a th:if="${train.secondClassBookable and seatClass != 'SECOND'}" class="btn btn-outline btn-sm btn-block class-choice"
+                 th:href="@{/booking/seats(scheduleId=${train.scheduleId},date=${#temporals.format(date,'yyyy-MM-dd')},seatClass='SECOND')}">
+                <span>Choose 2nd Class Reserved</span><span th:text="${train.formattedSecondClassFare}"></span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State (No Trains Found) -->
+        <div class="card" style="text-align: center; padding: 48px var(--spacing-lg);" th:if="${trainResults.empty}">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🚆🔍</div>
+          <h3>No Trains Found For Selected Criteria</h3>
+          <p style="color: var(--color-text-muted); max-width: 480px; margin: 0 auto 20px;">
+            No bookable services with available seats match this route and date. Try another date or route.
+          </p>
+          <a th:href="@{/trains/search}" class="btn btn-primary">Reset Search Filters</a>
+        </div>
+      </div>
+
+      <div class="configured-routes" th:if="${trainResults == null and searchError == null}">
+        <div style="text-align: center; margin-bottom: var(--spacing-xl);">
+          <h2>Explore Available Routes</h2>
+          <p style="color: var(--color-text-muted);">Choose a route to check its services and current seat availability.</p>
+        </div>
+        <div class="route-preview-grid">
+          <div class="card" th:each="route : ${configuredRoutes}">
+            <div class="card-body">
+              <h3 th:text="${route.origin + ' → ' + route.destination}"></h3>
+              <a th:href="@{/trains/search(origin=${route.origin},destination=${route.destination},date=${#temporals.format(date,'yyyy-MM-dd')})}" class="btn btn-outline btn-sm">Find Trains</a>
+            </div>
+          </div>
+        </div>
+        <p th:if="${stations.empty}" role="status">No stations are available yet. Please check again after routes have been added.</p>
+      </div>
+    </section>
+    <style>
+      .search-page-wrapper .class-choice { margin-top: 8px; white-space: normal; text-align: center; flex-direction: column; gap: 0; }
+      .search-page-wrapper .class-warning { color: #7a4a00; font-size: .85rem; margin: 8px 0; }
+    </style>
+    <script th:src="@{/js/station-picker.js}" defer></script>
+  </div>
+</body>
+</html>

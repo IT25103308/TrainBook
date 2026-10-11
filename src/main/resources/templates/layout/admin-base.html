@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(content)">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${pageTitle != null ? pageTitle + ' | Operations - TrainBook' : 'Operations | TrainBook'}">Operations | TrainBook</title>
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css(v=3)}" href="/css/global.css?v=3">
+  
+  <!-- CSRF Meta Tags for AJAX Requests -->
+  <meta th:if="${_csrf}" name="_csrf" th:content="${_csrf.token}"/>
+  <meta th:if="${_csrf}" name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+  <div class="admin-wrapper">
+    <!-- ================= ADMIN SIDEBAR ================= -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <span style="font-size: 1.6rem;">🚂</span>
+        <div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff; line-height: 1.2;">TrainBook</div>
+          <span class="nav-brand-tag" style="margin-left: 0; background: #3498db; color: #fff;">Operations Console</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-item" sec:authorize="hasRole('ADMIN')">
+          <a class="sidebar-link" th:href="@{/dashboard}">
+            <span>📊</span> Dashboard
+          </a>
+        </li>
+        <li class="sidebar-item" sec:authorize="hasRole('ADMIN')"><a class="sidebar-link" th:href="@{/admin/accounts}"><span>👥</span> Staff access</a></li>
+        <!-- Expandable Manage Trains Navigation -->
+        <li class="sidebar-item" sec:authorize="hasAnyRole('ADMIN','COORDINATOR')">
+          <details class="sidebar-dropdown" id="manageTrainsNavDropdown">
+            <summary class="sidebar-link sidebar-dropdown-summary" id="manageTrainsSummary">
+              <span style="display: flex; align-items: center; gap: 12px; pointer-events: none;">
+                <span>🚆</span>
+                <span>Manage Trains</span>
+              </span>
+              <span class="dropdown-arrow" style="pointer-events: none;">▾</span>
+            </summary>
+            <ul class="sidebar-submenu" id="manageTrainsSubmenu">
+              <li class="sidebar-subitem">
+                <a class="sidebar-sublink" th:href="@{/trains/fleet}">
+                  <span>🚆</span> Manage Fleet
+                </a>
+              </li>
+              <li class="sidebar-subitem">
+                <a class="sidebar-sublink" th:href="@{/trains/schedules}">
+                  <span>📅</span> Train Timetables
+                </a>
+              </li>
+              <li class="sidebar-subitem">
+                <a class="sidebar-sublink" th:href="@{/trains/routes}">
+                  <span>🗺️</span> Routes & Pricing
+                </a>
+              </li>
+            </ul>
+          </details>
+        </li>
+        <!-- Expandable Train Status & Alerts Navigation -->
+        <li class="sidebar-item" sec:authorize="hasAnyRole('ADMIN','COORDINATOR')">
+          <details class="sidebar-dropdown" id="statusAlertsNavDropdown">
+            <summary class="sidebar-link sidebar-dropdown-summary" id="statusAlertsSummary">
+              <span style="display: flex; align-items: center; gap: 12px; pointer-events: none;">
+                <span>⚠️</span>
+                <span>Train Status & Alerts</span>
+              </span>
+              <span class="dropdown-arrow" style="pointer-events: none;">▾</span>
+            </summary>
+            <ul class="sidebar-submenu" id="statusAlertsSubmenu">
+              <li class="sidebar-subitem">
+                <a class="sidebar-sublink" th:href="@{/notifications/status}">
+                  <span>📢</span> Status & Alerts
+                </a>
+              </li>
+              <li class="sidebar-subitem"><a class="sidebar-sublink" th:href="@{/notifications/telemetry}"><span>📍</span> Position Reports</a></li>
+              <li class="sidebar-subitem">
+                <a class="sidebar-sublink" th:href="@{/admin/live-map}">
+                  <span>🗺️</span> Reported Train Positions
+                </a>
+              </li>
+            </ul>
+          </details>
+        </li>
+        <li class="sidebar-item" sec:authorize="hasAnyRole('ADMIN','STATION_STAFF')">
+          <a class="sidebar-link" th:href="@{/dashboard/validate}">
+            <span>📱</span> Validate Tickets
+          </a>
+        </li>
+        <li class="sidebar-item" sec:authorize="hasAnyRole('ADMIN','STATION_STAFF')">
+          <a class="sidebar-link" th:href="@{/dashboard/boarding-logs}">
+            <span>📋</span> Turnstile Logs
+          </a>
+        </li>
+        <li class="sidebar-item" sec:authorize="hasRole('ADMIN')">
+          <a class="sidebar-link" th:href="@{/dashboard#reports}">
+            <span>📈</span> Revenue Reports
+          </a>
+        </li>
+        
+        <li class="sidebar-item" style="margin-top: var(--spacing-xl); padding-top: var(--spacing-md); border-top: 1px solid rgba(255,255,255,0.08);">
+          <a class="sidebar-link" th:href="@{/trains/search}" style="color: #67b7f7;">
+            <span>🌐</span> Passenger View
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <form th:action="@{/logout}" method="post" style="margin: 0;">
+            <button type="submit" class="sidebar-link" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+              <span>🚪</span> Sign Out
+            </button>
+          </form>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div><strong>SLIIT SE2030</strong></div>
+        <div>Group: 2026-Y2-S1-MLB-B9G2-10</div>
+      </div>
+    </aside>
+
+    <!-- ================= ADMIN MAIN CONTENT AREA ================= -->
+    <div class="admin-main">
+      <!-- Admin Top Navbar -->
+      <nav class="navbar" style="position: sticky; top: 0; background: #ffffff; color: var(--color-text); border-bottom: 1px solid var(--color-border); height: 64px;">
+        <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--spacing-xl);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="sidebar-toggle-btn btn btn-outline btn-sm" type="button" style="display: none;">
+              ☰
+            </button>
+            <span style="font-weight: 700; color: var(--color-primary); font-size: 1.1rem;" th:text="${pageTitle != null ? pageTitle : 'Control Center'}">
+              Control Center
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <span class="badge badge-primary" sec:authorize="hasRole('ADMIN')">Admin</span><span class="badge badge-primary" sec:authorize="hasRole('COORDINATOR')">Schedule coordinator</span><span class="badge badge-primary" sec:authorize="hasRole('STATION_STAFF')">Station staff</span>
+            <div style="font-size: 0.9rem; font-weight: 600; color: var(--color-primary);">
+              👤 <span sec:authentication="name">Administrator</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Flash Messages in Admin -->
+      <div style="padding: var(--spacing-md) var(--spacing-xl) 0;" th:if="${successMessage != null or errorMessage != null or infoMessage != null}">
+        <div class="alert alert-success" th:if="${successMessage != null}">
+          <span>✓</span>
+          <span th:text="${successMessage}">Operation successful!</span>
+          <button class="alert-close" type="button">&times;</button>
+        </div>
+        <div class="alert alert-danger" th:if="${errorMessage != null}">
+          <span>⚠️</span>
+          <span th:text="${errorMessage}">An error occurred.</span>
+          <button class="alert-close" type="button">&times;</button>
+        </div>
+        <div class="alert alert-info" th:if="${infoMessage != null}">
+          <span>ℹ️</span>
+          <span th:text="${infoMessage}">Information update.</span>
+          <button class="alert-close" type="button">&times;</button>
+        </div>
+      </div>
+
+      <!-- Main Admin Content -->
+      <div class="admin-content">
+        <div th:insert="${content}">
+          <!-- Admin page content inserted here -->
+        </div>
+      </div>
+
+      <!-- Admin Minimal Footer -->
+      <footer style="padding: 16px var(--spacing-xl); background: #ffffff; border-top: 1px solid var(--color-border); font-size: 0.82rem; color: var(--color-text-muted); display: flex; justify-content: space-between;">
+        <div>TrainBook Administration System &copy; 2026</div>
+        <div>SLIIT SE Project 2026-Y2-S1-MLB-B9G2-10</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script th:src="@{/js/main.js(v=4)}" src="/js/main.js?v=4"></script>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      var dd = document.getElementById('manageTrainsNavDropdown');
+      if (dd && (path.indexOf('/trains') !== -1 || path.indexOf('/schedules') !== -1)) {
+        dd.open = true;
+      }
+      var ddStatus = document.getElementById('statusAlertsNavDropdown');
+      if (ddStatus && (path.indexOf('/notifications') !== -1 || path.indexOf('/departure-board') !== -1 || path.indexOf('/admin/live-map') !== -1)) {
+        ddStatus.open = true;
+      }
+      var links = document.querySelectorAll('.sidebar-sublink');
+      links.forEach(function(a) {
+        var href = a.getAttribute('href');
+        if (href && (href === path || (path.startsWith(href) && href !== '/'))) {
+          a.classList.add('active');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

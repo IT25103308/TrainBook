@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(content)">
+<head>
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${pageTitle != null ? pageTitle + ' | TrainBook' : 'TrainBook - Sri Lanka Railways Booking System'}">TrainBook - Sri Lanka Railways Booking System</title>
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+  
+  <!-- CSRF Meta Tags for AJAX Requests -->
+  <meta th:if="${_csrf}" name="_csrf" th:content="${_csrf.token}"/>
+  <meta th:if="${_csrf}" name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body class="app-layout">
+
+  <!-- ================= NAVBAR ================= -->
+  <header>
+    <nav class="navbar">
+      <div class="container">
+        <!-- Brand Logo -->
+        <a class="nav-brand" th:href="@{/trains/search}">
+          <span class="nav-brand-logo">🚂</span>
+          <span>TrainBook</span>
+          <span class="nav-brand-tag">SL Railways</span>
+        </a>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button class="nav-mobile-toggle" type="button" aria-label="Toggle navigation">
+          ☰
+        </button>
+
+        <!-- Nav Links -->
+        <ul class="nav-menu">
+          <li>
+            <a class="nav-link" th:href="@{/trains/search}">
+              <span>🔍</span> Search Trains
+            </a>
+          </li>
+          <li>
+            <a class="nav-link" th:href="@{/notifications/map}">
+              <span>🗺️</span> Live Map
+            </a>
+          </li>
+          <li sec:authorize="isAuthenticated()">
+            <a class="nav-link" th:href="@{/passenger/bookings}">
+              <span>🎫</span> My Bookings
+            </a>
+          </li>
+          <li sec:authorize="isAuthenticated()">
+            <a class="nav-link" th:href="@{/notifications}">
+              <span>🔔</span> Notifications
+            </a>
+          </li>
+          <li sec:authorize="hasRole('COORDINATOR')"><a class="nav-link" th:href="@{/trains/fleet}">Manage Trains</a></li>
+          <li sec:authorize="hasRole('STATION_STAFF')"><a class="nav-link" th:href="@{/validate}">Validate Tickets</a></li>
+          <li sec:authorize="hasRole('ADMIN')">
+            <a class="nav-link" th:href="@{/dashboard}" style="color: #67b7f7; font-weight: 700;">
+              <span>⚙️</span> Admin Portal
+            </a>
+          </li>
+        </ul>
+
+        <!-- Auth Actions -->
+        <div class="nav-actions">
+          <!-- Anonymous Users -->
+          <div sec:authorize="isAnonymous()" style="display: flex; gap: 8px;">
+            <a th:href="@{/login}" class="btn btn-outline-white btn-sm">Sign In</a>
+            <a th:href="@{/register}" class="btn btn-accent btn-sm">Register</a>
+          </div>
+
+          <!-- Authenticated Users -->
+          <div sec:authorize="isAuthenticated()" style="display: flex; align-items: center; gap: 12px;">
+            <a th:href="@{/passenger/profile}" class="nav-link" style="padding: 4px 10px; background: rgba(255,255,255,0.1); border-radius: var(--radius-sm);">
+              <span>👤</span>
+              <span sec:authentication="name">User</span>
+            </a>
+            <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+              <button type="submit" class="btn btn-outline-white btn-sm">Logout</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ================= FLASH MESSAGES ================= -->
+  <div class="container" style="margin-top: 16px;" th:if="${successMessage != null or (errorMessage != null and checkoutPage != true) or infoMessage != null}">
+    <div class="alert alert-success" th:if="${successMessage != null}">
+      <span>✓</span>
+      <span th:text="${successMessage}">Operation successful!</span>
+      <button class="alert-close" type="button">&times;</button>
+    </div>
+    <div class="alert alert-danger" th:if="${errorMessage != null and checkoutPage != true}">
+      <span>⚠️</span>
+      <span th:text="${errorMessage}">An error occurred.</span>
+      <button class="alert-close" type="button">&times;</button>
+    </div>
+    <div class="alert alert-info" th:if="${infoMessage != null}">
+      <span>ℹ️</span>
+      <span th:text="${infoMessage}">Information update.</span>
+      <button class="alert-close" type="button">&times;</button>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT PLACEHOLDER ================= -->
+  <main class="main-content">
+    <div th:insert="${content}">
+      <!-- Page specific content will be injected here -->
+    </div>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <div class="footer-brand">🚂 TrainBook Sri Lanka</div>
+          <p style="max-width: 420px; font-size: 0.88rem;">
+            Modern web-based train scheduling, reservation and real-time transit management platform for Sri Lanka Railways.
+          </p>
+          <p style="font-size: 0.82rem; color: #a0aec0; margin-top: 8px;">
+            <strong>SLIIT Software Engineering Project (SE2030)</strong><br>
+            Group Batch: <strong>2026-Y2-S1-MLB-B9G2-10</strong>
+          </p>
+        </div>
+
+        <div>
+          <h4 style="color: #ffffff; font-size: 0.95rem; margin-bottom: 12px;">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a th:href="@{/trains/search}">Search Trains</a></li>
+            <li><a th:href="@{/passenger/bookings}">Booking History</a></li>
+            <li><a th:href="@{/passenger/profile}">My Profile</a></li>
+            <li><a th:href="@{/notifications}">Travel Alerts</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="color: #ffffff; font-size: 0.95rem; margin-bottom: 12px;">Support & Railway Info</h4>
+          <ul class="footer-links">
+            <li><a th:href="@{/trains/search}">Train Schedules &amp; Fares</a></li>
+            <li><a th:href="@{/notifications/map}">Live Train Map</a></li>
+            <li><a th:href="@{/terms}" href="/terms">Terms of Service</a></li>
+            <li><a th:href="@{/privacy}" href="/privacy">Privacy Policy</a></li>
+            <li><a href="https://seatreservation.railway.gov.lk/mtktwebslr/faq" target="_blank" rel="noopener noreferrer">Official Railway Reservation FAQ</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 TrainBook SLIIT SE Project (2026-Y2-S1-MLB-B9G2-10). All rights reserved.</div>
+        <div>Sri Lanka Railways Booking System</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript File -->
+  <script th:src="@{/js/main.js}" src="/js/main.js"></script>
+</body>
+</html>

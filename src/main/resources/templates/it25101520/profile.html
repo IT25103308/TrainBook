@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::div.profile-page-wrapper})}">
+<body><div class="profile-page-wrapper container" style="max-width:960px;">
+<link rel="stylesheet" th:href="@{/css/account-pages.css}">
+<h2>My Account &amp; Preferences</h2><p style="color:var(--color-text-muted);margin-bottom:24px;">Manage your details, travel alerts and favourite routes.</p>
+<div class="account-columns">
+<aside><div class="card account-profile-card"><div class="card-body">
+<h3 th:text="${user.fullName}"></h3><p th:text="${user.email}" style="overflow-wrap:anywhere;"></p>
+<div class="account-metadata">Member since: <span th:text="${user.memberSince}"></span></div>
+<div class="account-metadata">Total bookings: <span th:text="${user.totalBookings}"></span></div>
+</div></div><div class="card"><div class="card-body">
+<a th:href="@{/passenger/bookings}" class="btn btn-secondary btn-block">My Bookings</a>
+<a th:href="@{/notifications}" class="btn btn-secondary btn-block" style="margin-top:8px;">Travel Alerts</a>
+<a th:href="@{/forgot-password}" class="btn btn-secondary btn-block" style="margin-top:8px;">Reset Password</a>
+</div></div></aside>
+<div><section class="card account-profile-card"><div class="card-header"><h3 class="card-title">Personal Details</h3></div><div class="card-body">
+<form th:action="@{/passenger/profile}" th:object="${profileForm}" method="post">
+<input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<div class="account-form-grid">
+<div class="form-group"><label for="firstName" class="form-label">First Name</label><input id="firstName" th:field="*{firstName}" class="form-control" maxlength="100" autocomplete="given-name" data-account-field="name" required>
+<div class="form-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div><div id="firstNameClientError" class="form-error" role="status" hidden></div></div>
+<div class="form-group"><label for="lastName" class="form-label">Last Name</label><input id="lastName" th:field="*{lastName}" class="form-control" maxlength="100" autocomplete="family-name" data-account-field="name" required>
+<div class="form-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div><div id="lastNameClientError" class="form-error" role="status" hidden></div></div></div>
+<div class="form-group"><label for="accountEmail" class="form-label">Email Address</label><input id="accountEmail" class="form-control" type="email" th:value="${user.email}" readonly><div class="form-hint">Your sign-in email cannot be changed here.</div></div>
+<div class="form-group"><label for="phone" class="form-label">Phone Number</label><input id="phone" th:field="*{phone}" class="form-control" type="tel" maxlength="20" autocomplete="tel" data-account-field="phone" required>
+<div class="form-hint">For example 0771234567 or +94771234567. Spaces and hyphens are allowed.</div><div class="form-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div><div id="phoneClientError" class="form-error" role="status" hidden></div></div>
+<h4>Travel Alert Preferences</h4><p class="form-hint">In-app alerts remain available. Choose your optional delivery channels; SMS is simulated in this project.</p>
+<div class="account-form-grid" style="margin-bottom:16px;">
+<label class="account-alert-option"><input type="checkbox" th:field="*{notifyByEmail}"> Email travel alerts</label>
+<label class="account-alert-option"><input type="checkbox" th:field="*{notifyBySms}"> SMS travel alerts</label></div>
+<div class="form-group"><label for="delayAlertThresholdMinutes" class="form-label">Delay Alert Threshold</label>
+<select id="delayAlertThresholdMinutes" th:field="*{delayAlertThresholdMinutes}" class="form-select" required>
+<option value="5">5 minutes or more</option><option value="15">15 minutes or more</option><option value="30">30 minutes or more</option><option value="60">60 minutes or more</option></select>
+<div class="form-error" th:if="${#fields.hasErrors('delayAlertThresholdMinutes')}" th:errors="*{delayAlertThresholdMinutes}"></div></div>
+<button type="submit" class="btn btn-primary">Save Changes</button></form></div></section>
+<section id="favourites" class="card"><div class="card-header"><h3 class="card-title">Favourite Routes</h3></div><div class="card-body">
+<p class="form-hint">Save a configured route for quick searches. Current fares and availability are checked when you search.</p>
+<div th:if="${favoriteRoutes.empty}" style="margin-bottom:16px;">No favourite routes yet.</div>
+<div th:each="fav : ${favoriteRoutes}" class="account-favourite"><strong th:text="${fav.origin + ' → ' + fav.destination}"></strong>
+<div class="account-actions"><a th:href="@{/trains/search(origin=${fav.origin},destination=${fav.destination})}" class="btn btn-accent btn-sm">Find Trains</a>
+<a th:href="@{/passenger/favorites/{id}/edit(id=${fav.id})}" class="btn btn-secondary btn-sm">Edit</a>
+<form th:action="@{/passenger/favorites/{id}/delete(id=${fav.id})}" method="post"><input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button type="submit" class="btn btn-danger btn-sm" th:aria-label="${'Remove favourite ' + fav.origin + ' to ' + fav.destination}">Remove</button></form></div></div>
+<h4>Add a Favourite</h4><p th:if="${stationNames.empty}" class="form-hint">No routes have been configured yet.</p>
+<form th:if="${not stationNames.empty}" th:action="@{/passenger/favorites/add}" th:object="${favoriteForm}" method="post">
+<input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger" role="alert"><div th:each="error : ${#fields.allErrors()}" th:text="${error}"></div></div>
+<div class="account-form-grid"><div class="form-group"><label for="favoriteOrigin" class="form-label">Origin</label><div class="station-picker"><select id="favoriteOrigin" th:field="*{origin}" class="form-select" data-station-picker required><option value="">Choose origin</option><option th:each="station : ${stationNames}" th:value="${station}" th:text="${station}"></option></select></div></div>
+<div class="form-group"><label for="favoriteDestination" class="form-label">Destination</label><div class="station-picker"><select id="favoriteDestination" th:field="*{destination}" class="form-select" data-station-picker required><option value="">Choose destination</option><option th:each="station : ${stationNames}" th:value="${station}" th:text="${station}"></option></select></div></div></div>
+<button type="submit" class="btn btn-primary">Save Favourite</button></form>
+</div></section></div></div>
+<script th:src="@{/js/account-fields.js}" defer></script><script th:src="@{/js/station-picker.js}" defer></script>
+</div></body></html>

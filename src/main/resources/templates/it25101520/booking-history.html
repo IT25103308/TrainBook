@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.history-page-wrapper})}">
+<head><title>My Bookings &amp; Tickets | TrainBook</title></head>
+<body>
+<div class="history-page-wrapper container">
+  <div class="history-header">
+    <div><h2>My Bookings &amp; Tickets</h2>
+      <p style="color: var(--color-text-muted);">Your newest reservations appear first. Resume payment or view an issued ticket.</p>
+    </div>
+    <a th:href="@{/trains/search}" class="btn btn-accent">Book New Ticket</a>
+  </div>
+  <nav class="history-filters" aria-label="Filter bookings">
+    <a th:href="@{/passenger/bookings}" class="btn btn-sm" th:classappend="${selectedFilter == 'ALL' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'ALL' ? 'page' : null}">All Bookings</a>
+    <a th:href="@{/passenger/bookings(filter='PENDING')}" class="btn btn-sm" th:classappend="${selectedFilter == 'PENDING' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'PENDING' ? 'page' : null}">Awaiting Payment</a>
+    <a th:href="@{/passenger/bookings(filter='UPCOMING')}" class="btn btn-sm" th:classappend="${selectedFilter == 'UPCOMING' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'UPCOMING' ? 'page' : null}">Upcoming Trips</a>
+    <a th:href="@{/passenger/bookings(filter='COMPLETED')}" class="btn btn-sm" th:classappend="${selectedFilter == 'COMPLETED' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'COMPLETED' ? 'page' : null}">Past Trips</a>
+    <a th:href="@{/passenger/bookings(filter='EXPIRED')}" class="btn btn-sm" th:classappend="${selectedFilter == 'EXPIRED' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'EXPIRED' ? 'page' : null}">Expired Holds</a>
+    <a th:href="@{/passenger/bookings(filter='CANCELLED')}" class="btn btn-sm" th:classappend="${selectedFilter == 'CANCELLED' ? 'btn-primary' : 'btn-secondary'}" th:attr="aria-current=${selectedFilter == 'CANCELLED' ? 'page' : null}">Cancelled</a>
+  </nav>
+  <div class="card">
+    <div class="table-responsive" tabindex="0" aria-label="Bookings table; scroll horizontally on smaller screens">
+      <table class="table history-table">
+        <caption class="history-caption">Reservations and issued tickets, newest booking first</caption>
+        <thead><tr>
+          <th scope="col">Reservation / Ticket</th><th scope="col">Train &amp; Route</th>
+          <th scope="col">Travel Date</th><th scope="col">Seats</th><th scope="col">Class</th>
+          <th scope="col">Total Fare</th><th scope="col">Status</th><th scope="col">Action</th>
+        </tr></thead>
+        <tbody>
+          <tr th:if="${bookings.empty}"><td colspan="8" style="text-align:center; padding:40px;">
+            <h3>No bookings in this category</h3><p>Choose another filter or book a new journey.</p>
+            <a th:href="@{/passenger/bookings}" class="btn btn-secondary btn-sm" th:if="${selectedFilter != 'ALL'}">View all bookings</a>
+            <a th:href="@{/trains/search}" class="btn btn-primary btn-sm">Find trains</a>
+          </td></tr>
+          <tr th:each="booking : ${bookings}">
+            <td><a class="booking-reference" th:href="${booking.actionUrl}" th:text="${booking.reference}" th:attr="aria-label=${booking.actionLabel + ' for ' + booking.reference}">RES-1</a>
+              <div class="history-detail" th:text="${booking.bookedAt != null ? 'Booked: ' + #temporals.format(booking.bookedAt, 'dd MMM yyyy, HH:mm') : 'Booking time unavailable'}"></div>
+            </td>
+            <td><strong th:text="${booking.trainName}"></strong><div class="history-detail" th:text="${booking.origin + ' → ' + booking.destination}"></div></td>
+            <td class="history-nowrap"><strong th:text="${booking.travelDate != null ? #temporals.format(booking.travelDate, 'dd MMM yyyy') : 'Unavailable'}"></strong>
+              <div class="history-detail" th:text="${booking.departureTime != null ? #temporals.format(booking.departureTime, 'HH:mm') : 'Time unavailable'}"></div></td>
+            <td><span class="history-nowrap" th:text="${booking.seatCount + ' seat(s)'}"></span><div class="history-detail history-seat-numbers" th:text="${booking.seatNumbers != null ? booking.seatNumbers : 'Allocation unavailable'}"></div></td>
+            <td class="history-nowrap" th:text="${booking.classLabel}"></td>
+            <td class="history-nowrap"><strong th:text="${booking.totalAmount != null ? 'LKR ' + #numbers.formatDecimal(booking.totalAmount, 1, 'COMMA', 2, 'POINT') : 'Unavailable'}"></strong></td>
+            <td><span class="badge" th:classappend="${booking.status == 'CONFIRMED' ? 'badge-confirmed' : booking.status == 'PENDING' or booking.status == 'EXPIRED' ? 'badge-warning' : 'badge-cancelled'}" th:text="${booking.statusLabel}"></span>
+              <div class="history-detail" th:text="${booking.statusDetail}"></div></td>
+            <td><div class="history-actions">
+              <a th:href="${booking.actionUrl}" class="btn btn-sm" th:classappend="${booking.status == 'PENDING' ? 'btn-primary' : 'btn-outline'}" th:text="${booking.actionLabel}" th:attr="aria-label=${booking.actionLabel + ' for ' + booking.reference}"></a>
+              <a th:if="${booking.ticketAvailable}" th:href="@{/payment/ticket/{id}/download(id=${booking.ticketId})}" class="btn btn-secondary btn-sm" th:attr="aria-label=${'Download PDF for ' + booking.reference}">PDF</a>
+            </div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <style>
+    .history-page-wrapper .history-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+    .history-page-wrapper .history-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--color-border); }
+    .history-page-wrapper .table-responsive { overflow-x:auto; }
+    .history-page-wrapper .history-table { min-width:1080px; }
+    .history-page-wrapper .history-caption { text-align:left; padding:12px 20px; color:var(--color-text-muted); font-size:.82rem; }
+    .history-page-wrapper .history-detail { font-size:.78rem; color:var(--color-text-muted); margin-top:4px; }
+    .history-page-wrapper .booking-reference { font-family:var(--font-mono); font-weight:700; white-space:nowrap; }
+    .history-page-wrapper .history-nowrap { white-space:nowrap; }
+    .history-page-wrapper .history-seat-numbers { min-width:110px; max-width:175px; }
+    .history-page-wrapper .history-actions { display:flex; flex-wrap:wrap; gap:6px; min-width:140px; }
+    .history-page-wrapper .history-actions .btn { white-space:nowrap; }
+  </style>
+</div>
+</body></html>

@@ -1,0 +1,78 @@
+/**
+ * TrainBook Design System - CSS Variables
+ * SLIIT Software Engineering Project | 2026-Y2-S1-MLB-B9G2-10
+ */
+:root {
+  /* Brand Color Palette */
+  --color-primary: #0f2d4e;         /* Deep Navy */
+  --color-primary-dark: #091c30;    /* Dark Navy */
+  --color-primary-light: #1a4373;   /* Slate Navy */
+  --color-primary-subtle: #e8eef5;  /* Soft Ice Navy */
+
+  --color-accent: #3498db;          /* Sky Blue */
+  --color-accent-dark: #217dbb;     /* Steel Blue */
+  --color-accent-light: #ebf5fb;    /* Light Sky Tint */
+
+  /* Functional Status Colors */
+  --color-success: #27ae60;         /* On Time / Confirmed */
+  --color-success-dark: #1e8449;
+  --color-success-light: #eafaf1;
+
+  --color-warning: #f39c12;         /* Delayed / Pending */
+  --color-warning-dark: #d68910;
+  --color-warning-light: #fef9e7;
+
+  --color-danger: #e74c3c;          /* Cancelled / Error */
+  --color-danger-dark: #c0392b;
+  --color-danger-light: #fdedec;
+
+  --color-info: #2980b9;
+  --color-info-light: #ebf5fb;
+
+  /* Neutrals & Backgrounds */
+  --color-bg: #f4f7fb;              /* Page Background */
+  --color-surface: #ffffff;         /* Card / Content Surface */
+  --color-surface-muted: #f8fafc;   /* Input & Table alternate */
+  --color-border: #dee2e6;          /* Border */
+  --color-border-light: #eef2f6;    /* Divider / subtle border */
+  --color-text: #212529;            /* Primary Text */
+  --color-text-muted: #6c757d;      /* Secondary Text */
+  --color-text-light: #adb5bd;      /* Disabled / Hint Text */
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Elevation & Shadows */
+  --shadow-xs: 0 1px 2px rgba(15, 45, 78, 0.05);
+  --shadow-sm: 0 2px 4px rgba(15, 45, 78, 0.08);
+  --shadow-md: 0 4px 16px rgba(15, 45, 78, 0.10);
+  --shadow-lg: 0 8px 32px rgba(15, 45, 78, 0.14);
+  --shadow-xl: 0 16px 48px rgba(15, 45, 78, 0.18);
+
+  /* Spacing Scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 40px;
+  --spacing-2xl: 64px;
+
+  /* Layout */
+  --navbar-height: 72px;
+  --sidebar-width: 260px;
+  --container-max-width: 1240px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

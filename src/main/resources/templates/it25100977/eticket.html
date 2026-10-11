@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.eticket-wrapper})}">
+<head>
+  <title>Your E-Ticket | TrainBook</title>
+</head>
+<body>
+  <div class="eticket-wrapper container">
+    <!-- Success Notification Banner -->
+    <div class="alert alert-success ticket-screen-only" data-persistent style="max-width: 780px; margin: 0 auto var(--spacing-lg);">
+      <span style="font-size: 1.3rem;">🎉</span>
+      <div>
+        <strong>Booking Confirmed & E-Ticket Issued!</strong>
+        <p style="margin: 0; font-size: 0.85rem;">Your ticket is ready. Download or print it for your journey.</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info ticket-screen-only" data-persistent style="max-width:780px;margin:0 auto 20px;" th:text="${ticket.emailDeliveryMessage}"></div>
+    <div class="alert alert-danger ticket-screen-only" data-persistent th:if="${param.downloadError != null}" style="max-width:780px;margin:0 auto 20px;" role="alert">The document could not be generated. Your paid reservation is retained. Retry the download or use Print Ticket.</div>
+    <div class="alert alert-danger ticket-screen-only" data-persistent th:if="${departureStatus == 'CANCELLED' or departureStatus == 'MAINTENANCE' or departureStatus == 'INACTIVE'}" style="max-width:780px;margin:0 auto 20px;"><div><strong>This departure is unavailable.</strong><p>Your paid record is retained. Boarding is unavailable for this service. Check your alerts for an eligible replacement offer.</p><a th:href="@{/notifications}" class="btn btn-secondary btn-sm">View travel alerts</a></div></div>
+    <div class="alert alert-warning ticket-screen-only" data-persistent th:if="${departureStatus == 'DELAYED'}" style="max-width:780px;margin:0 auto 20px;">This departure is delayed<span th:if="${departureDelay > 0}" th:text="${' by '+departureDelay+' minutes'}"></span>. Check the departure board for updates.</div>
+    <!-- ================= E-TICKET CARD ================= -->
+    <div class="ticket-container">
+      <!-- Ticket Top Header -->
+      <div class="ticket-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">🚂</span>
+          <div>
+            <div class="brand">TrainBook • Sri Lanka Railways</div>
+            <div style="font-size: 0.78rem; opacity: 0.85;">Demo Electronic Passenger Ticket</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <span class="ticket-type">E-TICKET / BOARDING PASS</span>
+          <div style="font-size: 0.85rem; font-family: var(--font-mono); font-weight: 700; margin-top: 4px;" 
+               th:text="${ticket != null and ticket.ticketNumber != null ? ticket.ticketNumber : 'TKT-2026-98210'}">
+            TKT-2026-98210
+          </div>
+        </div>
+      </div>
+
+      <!-- Ticket Main Body -->
+      <div class="ticket-body">
+        <!-- Status & Route Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-md); border-bottom: 2px solid var(--color-border-light); margin-bottom: var(--spacing-lg);">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Train Service</span>
+            <h2 style="margin: 0; color: var(--color-primary);" th:text="${ticket != null and ticket.trainName != null ? ticket.trainName : 'Udarata Menike (Exp 1015)'}">
+              Udarata Menike (Exp 1015)
+            </h2>
+          </div>
+          <div>
+            <span class="badge badge-valid" th:if="${ticket == null or ticket.status == null or ticket.status == 'CONFIRMED' or ticket.status == 'VALID'}">
+              ● VALID / CONFIRMED
+            </span>
+            <span class="badge badge-boarded" th:if="${ticket != null and ticket.status == 'BOARDED'}">
+              ● PASSENGER BOARDED
+            </span>
+            <span class="badge badge-cancelled" th:if="${ticket != null and ticket.status == 'CANCELLED'}">
+              ● CANCELLED
+            </span>
+          </div>
+        </div>
+
+        <!-- 3x2 Grid of Ticket Info -->
+        <div class="ticket-grid">
+          <!-- Item 1: Passenger -->
+          <div class="ticket-item">
+            <span class="label">Passenger Name</span>
+            <span class="value" th:text="${ticket != null and ticket.passengerName != null ? ticket.passengerName : 'Kasun Perera'}">Kasun Perera</span>
+            <span style="font-size: 0.78rem; color: var(--color-text-muted);" th:text="${ticket.documentLabel + ': ' + (ticket.passengerNic != null and not #strings.isEmpty(ticket.passengerNic) ? ticket.passengerNic : 'Not recorded')}">NIC: 199623849102</span>
+          </div>
+
+          <!-- Item 2: Origin Station -->
+          <div class="ticket-item">
+            <span class="label">From Station</span>
+            <span class="value" th:text="${ticket != null and ticket.origin != null ? ticket.origin : 'Colombo Fort'}">Colombo Fort</span>
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--color-accent);" th:text="${ticket != null and ticket.departureTime != null ? ticket.departureTime : '05:55 AM'}">05:55 AM</span>
+          </div>
+
+          <!-- Item 3: Destination Station -->
+          <div class="ticket-item">
+            <span class="label">To Station</span>
+            <span class="value" th:text="${ticket != null and ticket.destination != null ? ticket.destination : 'Kandy'}">Kandy</span>
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--color-accent);" th:text="${ticket != null and ticket.arrivalTime != null ? ticket.arrivalTime : '09:20 AM'}">09:20 AM</span>
+          </div>
+
+          <!-- Item 4: Travel Date -->
+          <div class="ticket-item">
+            <span class="label">Travel Date</span>
+            <span class="value" th:text="${ticket.travelDate != null ? #temporals.format(ticket.travelDate,'dd MMM yyyy') : 'Date not recorded'}">Travel date</span>
+          </div>
+
+          <!-- Item 5: Class & Seats -->
+          <div class="ticket-item">
+            <span class="label">Class & Seats</span>
+            <span class="value">
+              <span th:text="${ticket != null and ticket.seatClass != null ? ticket.seatClass : 'FIRST'}">FIRST</span> Class
+              (<span th:text="${ticket != null and ticket.seatCount != null ? ticket.seatCount + ' Seats' : '1 Seat'}">1 Seat</span>)
+            </span>
+            <span style="font-size: 0.8rem; color: var(--color-primary-light); font-weight: 600;" 
+                  th:text="${ticket != null and ticket.seatNumbers != null ? 'Allocated: ' + ticket.seatNumbers : 'Allocated: Car 02 / A12'}">
+              Allocated: Car 02 / A12
+            </span>
+          </div>
+
+          <!-- Item 6: Total Fare -->
+          <div class="ticket-item">
+            <span class="label">Fare Paid</span>
+            <span class="value" style="color: var(--color-success);" 
+                  th:text="${ticket != null and ticket.totalAmount != null ? 'LKR ' + #numbers.formatDecimal(ticket.totalAmount, 1, 'COMMA', 2, 'POINT') : 'LKR 1,800.00'}">
+              LKR 1,800.00 (PAID)
+            </span>
+          </div>
+        </div>
+
+        <!-- Perforation Notch Line -->
+        <div class="ticket-perforation">
+          <div class="ticket-perforation-line"></div>
+        </div>
+
+        <!-- Ticket Footer & QR Code Section -->
+        <div class="ticket-footer">
+          <div style="text-align: left; max-width: 440px;">
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--color-primary); margin-bottom: 4px;">
+              Digital Ticket Verification
+            </div>
+            <p style="font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.4;">
+              Please present this QR code to the station conductor or ticket barrier staff before boarding. Valid photo ID must be presented upon inspection.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-text-light); margin-top: 8px;">
+              <span th:text="${'Ticket Reference: ' + ticket.ticketNumber}"></span>
+            </div>
+          </div>
+
+          <!-- QR Code Container -->
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <div class="ticket-qr">
+              <img th:src="@{/api/tickets/{id}/qr(id=${ticket.id})}" alt="Ticket QR Code"
+                   onerror="this.hidden=true;document.getElementById('ticketQrError').hidden=false;">
+              <span id="ticketQrError" hidden role="alert" style="font-size:.75rem;">QR unavailable. Use the ticket reference for staff lookup.</span>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--color-text-muted); font-weight: 600;">Scan at Barrier</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ACTION BUTTONS ================= -->
+    <div class="ticket-actions" style="max-width: 780px; margin: var(--spacing-xl) auto 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md);">
+      <a th:href="@{/passenger/bookings}" class="btn btn-secondary">
+        ← View All My Bookings
+      </a>
+
+      <div style="display: flex; gap: var(--spacing-sm);">
+        <button type="button" class="btn btn-outline" onclick="window.print();">
+          <span>🖨️</span> Print Ticket
+        </button>
+        <a th:if="${ticket != null and ticket.id != null}" 
+           th:href="@{/payment/receipt/{id}/download(id=${ticket.id})}" 
+           class="btn btn-outline" title="Download the simulated payment receipt">
+          <span>📄</span> Payment Receipt
+        </a>
+        <a th:if="${ticket != null and ticket.id != null}" 
+           th:href="@{/payment/ticket/{id}/download(id=${ticket.id})}" 
+           class="btn btn-primary">
+          <span>📥</span> Download PDF
+        </a>
+        <a th:unless="${ticket != null and ticket.id != null}" 
+           th:href="@{/trains/search}" 
+           class="btn btn-accent">
+          Book Another Train
+        </a>
+      </div>
+    </div>
+    <p style="max-width:780px;margin:16px auto;color:var(--color-text-muted);font-size:.78rem;">TrainBook demonstration ticket. No real charge or railway travel entitlement.</p>
+    <style>
+      .ticket-grid .value { overflow-wrap:anywhere; }
+      .ticket-actions > div { flex-wrap:wrap; }
+      @media (max-width:600px) { .ticket-header { flex-wrap:wrap; gap:12px; } .ticket-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .ticket-footer { flex-wrap:wrap; gap:16px; } }
+      @media print {
+        @page { size:A4; margin:12mm; }
+        .navbar, .footer, footer, .ticket-screen-only, .ticket-actions, .site-header { display:none !important; }
+        body, main, .eticket-wrapper { background:white !important; margin:0 !important; padding:0 !important; max-width:none !important; }
+        .ticket-container { width:100%; max-width:none; box-shadow:none; border-radius:0; break-inside:avoid; }
+        .ticket-header { background:white !important; color:#112e51 !important; padding:16px; border-bottom:3px solid #112e51; }
+        .ticket-body { padding:18px; } .ticket-grid { gap:14px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .ticket-footer { gap:16px; } .ticket-perforation:before, .ticket-perforation:after { background:white; }
+      }
+    </style>
+  </div>
+</body>
+</html>

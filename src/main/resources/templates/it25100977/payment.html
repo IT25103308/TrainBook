@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.payment-page-wrapper})}">
+<head>
+  <title>Payment & Checkout | TrainBook</title>
+</head>
+<body>
+  <div class="payment-page-wrapper container container-sm">
+    <!-- ================= CHECKOUT STEPPER ================= -->
+    <div class="stepper">
+      <div class="step-item completed">
+        <div class="step-number">✓</div>
+        <span>Select Seats</span>
+      </div>
+      <div class="step-line" style="background-color: var(--color-success);"></div>
+      <div class="step-item active">
+        <div class="step-number">2</div>
+        <span>Payment</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-number">3</div>
+        <span>E-Ticket</span>
+      </div>
+    </div>
+
+    <!-- Error / Decline Message -->
+    <div class="alert alert-danger" data-persistent th:if="${errorMessage != null or param.declined != null}" style="margin-bottom: var(--spacing-md);">
+      <span style="font-size: 1.2rem;">⚠️</span>
+      <span th:text="${errorMessage != null ? errorMessage : 'Transaction was declined by payment gateway. Please retry with a valid card or cancel before the 10-minute hold expires.'}">
+        Payment declined.
+      </span>
+    </div>
+
+    <!-- 10-Minute Temporary Reservation Timer Banner -->
+    <div id="paymentTimerBanner" style="background: #fff8e1; border: 1px solid #ffe082; border-radius: var(--radius-sm); padding: 12px 18px; margin-bottom: var(--spacing-lg); display: flex; justify-content: space-between; align-items: center; color: #8d6e63; box-shadow: var(--shadow-sm);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem;">⏱️</span>
+        <div>
+          <strong id="paymentHoldTitle" style="color: #bf360c; font-size: 0.95rem;"
+                  th:text="${checkoutHold.title}">Reservation status</strong>
+          <div id="paymentHoldMessage" style="font-size: 0.78rem; color: #795548;"
+               th:text="${checkoutHold.message}">Checking reservation status.</div>
+        </div>
+      </div>
+      <div style="font-family: var(--font-mono); font-weight: 800; font-size: 1.25rem; color: #d84315; background: #ffffff; padding: 4px 12px; border-radius: 4px; border: 1px solid #ffcc80;" id="timerDisplay" role="timer" th:text="${checkoutHold.displayTime}">Checking</div>
+    </div>
+    <div id="checkoutRecoveryActions" th:hidden="${!checkoutHold.recoverable}" style="margin-bottom: var(--spacing-md);">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+        <a id="selectSeatsAgain" class="btn btn-primary" th:href="@{/booking/{id}/seats-again(id=${booking.id})}"
+           th:hidden="${!checkoutRecovery.canSelectAgain}">Select seats again</a>
+        <a id="searchAnotherTrain" th:class="${checkoutRecovery.canSelectAgain ? 'btn btn-secondary' : 'btn btn-primary'}"
+           th:href="@{/trains/search}">Search another train</a>
+      </div>
+      <p id="journeyRecoveryMessage" style="margin-top: 8px; color: var(--color-text-muted);" th:text="${checkoutRecovery.message}">Check journey availability.</p>
+    </div>
+    <div style="margin-bottom: var(--spacing-md);">
+      <a id="checkoutSearchLink" th:href="@{/trains/search}" th:hidden="${checkoutHold.recoverable}">Search another train</a>
+      <a th:href="@{/booking-history}">My Bookings</a>
+    </div>
+    <noscript><div class="alert alert-info" data-persistent>Enable JavaScript to view the countdown and continue payment. Your seat hold still expires at its original time.</div></noscript>
+    <div th:if="${paymentAttempt != null}" class="alert alert-info" data-persistent role="status" style="margin-bottom:16px;">
+      <strong th:text="${paymentAttempt.label}"></strong>
+      <span th:if="${paymentAttempt.attemptedAt != null}" th:text="${' ' + #temporals.format(paymentAttempt.attemptedAt,'dd MMM yyyy, HH:mm')}"></span>
+    </div>
+
+    <!-- ================= BOOKING SUMMARY CARD ================= -->
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+      <div class="card-header">
+        <h3 class="card-title">Reservation Summary</h3>
+        <span id="paymentStatusBadge" class="badge badge-warning" th:text="${checkoutHold.payable ? 'Awaiting Payment' : checkoutHold.displayTime}">Reservation status</span>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); font-size: 0.92rem;">
+          <div>
+            <span style="color: var(--color-text-muted); display: block;">Train Service:</span>
+            <strong style="color: var(--color-primary);" th:text="${booking != null and booking.trainName != null ? booking.trainName : 'Udarata Menike (Exp 1015)'}">
+              Udarata Menike (Exp 1015)
+            </strong>
+          </div>
+          <div>
+            <span style="color: var(--color-text-muted); display: block;">Route:</span>
+            <strong th:text="${booking != null and booking.origin != null and booking.destination != null ? booking.origin + ' ➔ ' + booking.destination : 'Colombo Fort ➔ Kandy'}">
+              Colombo Fort ➔ Kandy
+            </strong>
+          </div>
+          <div>
+            <span style="color: var(--color-text-muted); display: block;">Travel Date & Time:</span>
+            <strong th:text="${booking != null and booking.travelDate != null ? #temporals.format(booking.travelDate,'dd MMM yyyy') + ' at ' + booking.departureTime : 'Date not recorded'}">
+              2026-08-18 at 05:55 AM
+            </strong>
+          </div>
+          <div>
+            <span style="color: var(--color-text-muted); display: block;">Class & Seat Count:</span>
+            <strong>
+              <span th:text="${booking != null and booking.seatClass != null ? booking.seatClass : 'FIRST'}">FIRST</span> Class
+              (<span th:text="${booking != null and booking.seatCount != null ? booking.seatCount + ' seat(s)' : '1 seat(s)'}">1 seat(s)</span>)
+            </strong>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <span style="color: var(--color-text-muted); display: block;">Reserved Seats:</span>
+            <strong id="reservedSeatNumbers" th:text="${booking.seatNumbers != null and !#strings.isEmpty(booking.seatNumbers) ? booking.seatNumbers : 'Seat details unavailable'}">Seat details unavailable</strong>
+          </div>
+          <div style="grid-column:1 / -1;">
+            <span style="color:var(--color-text-muted);display:block;">Primary Passenger:</span>
+            <strong th:text="${booking.passengerName}"></strong>
+            <div th:text="${booking.documentLabel + ': ' + booking.passengerNic}"></div>
+            <div th:text="${'Contact: ' + booking.contactPhone}"></div>
+            <a id="editPassengerDetails" th:if="${checkoutHold.payable}"
+               th:href="@{/booking/{id}/details(id=${booking.id})}">Correct passenger details</a>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px dashed var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 0.85rem; color: var(--color-text-muted);">Total Payable:</span>
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--color-primary);" 
+                 th:text="${booking != null and booking.totalAmount != null ? 'LKR ' + #numbers.formatDecimal(booking.totalAmount, 1, 'COMMA', 2, 'POINT') : 'LKR 1,800.00'}">
+              LKR 1,800.00
+            </div>
+          </div>
+          <span class="badge badge-info">Instant E-Ticket Issuance</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MOCK PAYMENT GATEWAY CARD ================= -->
+    <div id="paymentMethodCard" class="card" th:hidden="${!checkoutHold.payable}">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Payment Method</h3>
+        <div style="display: flex; gap: 6px; font-size: 1.2rem;">
+          💳 💳 💳
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Sandbox Notice Banner -->
+        <div class="alert alert-info" data-persistent style="margin-bottom: var(--spacing-lg);">
+          <span>🔒</span>
+          <div>
+            <strong>Simulated Payment Gateway:</strong> Use a dummy 16-digit card number, a 3-digit CVV and a current or future expiry month. No real payment is collected.
+          </div>
+        </div>
+
+        <form id="paymentForm" class="no-loading" th:action="@{/payment/process}" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+          <input type="hidden" name="bookingId" th:value="${booking != null and booking.id != null ? booking.id : (param.bookingId != null ? param.bookingId : 1)}" />
+          <input type="hidden" name="amount" th:value="${booking != null and booking.totalAmount != null ? booking.totalAmount : 1800.00}" />
+
+          <fieldset id="paymentFields" disabled style="border: 0; padding: 0; margin: 0; min-width: 0;">
+          <!-- Card Holder Name -->
+          <div class="form-group">
+            <label class="form-label" for="cardHolderName">Cardholder Name</label>
+            <input type="text" 
+                   id="cardHolderName" 
+                   name="cardHolderName" 
+                   class="form-control" 
+                   placeholder="e.g. KASUN PERERA" 
+                   autocomplete="cc-name"
+                   maxlength="100"
+                   aria-describedby="cardHolderNameError cardHolderNameNotice"
+                   required>
+            <div id="cardHolderNameError" class="payment-input-error" role="alert" hidden></div>
+            <small id="cardHolderNameNotice" class="payment-input-notice" role="status" hidden></small>
+          </div>
+
+          <!-- Card Number -->
+          <div class="form-group">
+            <label class="form-label" for="cardNumber">Card Number</label>
+            <div class="input-icon-group">
+              <span class="icon">💳</span>
+              <input type="text" 
+                     id="cardNumber" 
+                     name="cardNumber" 
+                     class="form-control" 
+                     placeholder="4111 2222 3333 4444" 
+                     autocomplete="cc-number"
+                     inputmode="numeric"
+                     minlength="16"
+                     maxlength="19" 
+                     pattern="[0-9]{4}( ?[0-9]{4}){3}"
+                     title="Enter exactly 16 digits. Spaces are added automatically."
+                     aria-describedby="cardNumberHelp cardNumberError cardNumberNotice"
+                     required>
+            </div>
+            <small id="cardNumberHelp" style="color: var(--color-text-muted);">Enter 16 digits. Spaces are added automatically.</small>
+            <div id="cardNumberError" role="alert" hidden style="color: var(--color-danger); font-size: 0.85rem;"></div>
+            <small id="cardNumberNotice" class="payment-input-notice" role="status" hidden></small>
+          </div>
+
+          <!-- Expiry & CVV Row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="expMonth">Exp Month</label>
+              <select id="expMonth" name="expiryMonth" class="form-select" aria-describedby="expiryError" required>
+                <option value="" disabled selected>Choose month</option>
+                <option value="01">01 - Jan</option>
+                <option value="02">02 - Feb</option>
+                <option value="03">03 - Mar</option>
+                <option value="04">04 - Apr</option>
+                <option value="05">05 - May</option>
+                <option value="06">06 - Jun</option>
+                <option value="07">07 - Jul</option>
+                <option value="08">08 - Aug</option>
+                <option value="09">09 - Sep</option>
+                <option value="10">10 - Oct</option>
+                <option value="11">11 - Nov</option>
+                <option value="12">12 - Dec</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="expYear">Exp Year</label>
+              <select id="expYear" name="expiryYear" class="form-select" aria-describedby="expiryError" required>
+                <option value="" disabled selected>Choose year</option>
+                <option th:each="year : ${#numbers.sequence(#temporals.year(#temporals.createNow()), #temporals.year(#temporals.createNow()) + 10)}"
+                        th:value="${year}" th:text="${year}">2026</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cvv">CVV / CVC</label>
+              <input type="password" 
+                     id="cvv" 
+                     name="cvv" 
+                     class="form-control" 
+                     placeholder="123" 
+                     autocomplete="cc-csc"
+                     inputmode="numeric"
+                     minlength="3"
+                     maxlength="3"
+                     pattern="[0-9]{3}"
+                     title="Enter exactly 3 digits."
+                     aria-describedby="cvvHelp cvvError cvvNotice"
+                     required>
+              <small id="cvvHelp" style="color: var(--color-text-muted);">Enter 3 digits.</small>
+              <div id="cvvError" class="payment-input-error" role="alert" hidden></div>
+              <small id="cvvNotice" class="payment-input-notice" role="status" hidden></small>
+            </div>
+          </div>
+          <div id="expiryError" class="payment-input-error" role="alert" hidden></div>
+
+          <!-- Simulation Notice -->
+          <div style="background: #eef2f7; border: 1px solid #d0d7de; border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: var(--spacing-md); font-size: 0.8rem; color: #4b5563;">
+            <span>💡 <strong>Demo Simulation Tip:</strong> Enter card ending with <code>0000</code> or CVV <code>000</code> to test card decline and retry error workflow.</span>
+          </div>
+
+          <!-- Security Check -->
+          <div style="margin-bottom: var(--spacing-lg); font-size: 0.85rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px;">
+            <span>🛡️</span> Simulated payment only. No real charge is made.
+          </div>
+
+          <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+            <button id="payButton" type="submit" disabled class="btn btn-primary btn-lg" style="flex: 2;">
+              <span>🔒</span> Pay & Generate E-Ticket Now
+            </button>
+          </div>
+          </fieldset>
+        </form>
+
+        <!-- Cancel Reservation & Release Seats Form -->
+        <form id="cancelReservationForm" th:if="${booking.status.name() == 'PENDING'}" th:hidden="${!checkoutHold.payable}"
+              th:action="@{/booking/{id}/cancel(id=${booking.id})}" method="post" style="margin-top: 12px;">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+          <button type="submit" class="btn btn-secondary btn-block btn-sm" onclick="return confirm('Cancel this reservation and release your held seats back to public inventory?');">
+            ✕ Cancel Reservation & Release Seats
+          </button>
+        </form>
+      </div>
+    </div>
+  <style>
+    .payment-page-wrapper [hidden] { display: none !important; }
+    .payment-page-wrapper #payButton:disabled { opacity: .55; cursor: not-allowed; }
+    .payment-page-wrapper .payment-input-error { color: var(--color-danger); font-size: .85rem; margin-bottom: 8px; }
+    .payment-page-wrapper .payment-input-notice { display: block; color: var(--color-text-muted); font-size: .85rem; }
+  </style>
+  <!-- Keep checkout scripts inside the fragment included by layout/base. -->
+  <script th:src="@{/js/payment-card.js}"></script>
+  <script th:src="@{/js/payment-hold.js}"></script>
+  <script th:inline="javascript">
+    PaymentCard.mount({
+      currentYear: /*[[${#temporals.year(#temporals.createNow())}]]*/ 2026,
+      currentMonth: /*[[${#temporals.month(#temporals.createNow())}]]*/ 10
+    });
+    PaymentHold.mount({
+      state: /*[[${checkoutHold.state}]]*/ 'UNAVAILABLE',
+      remainingMillis: /*[[${checkoutHold.remainingMillis}]]*/ 0,
+      recoveryEligible: /*[[${checkoutRecovery.canSelectAgain}]]*/ false,
+      departureRemainingMillis: /*[[${checkoutRecovery.departureRemainingMillis}]]*/ 0,
+      recoveryMessage: /*[[${checkoutRecovery.message}]]*/ 'Please search another train.'
+    });
+  </script>
+  </div>
+</body>
+</html>

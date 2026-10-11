@@ -1,0 +1,36 @@
+# Maven and Java build output
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Local configuration, credentials and runtime data
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+*.pem
+*.key
+*.p12
+*.jks
+*.sql
+*.dump
+*.log
+logs/
+uploads/
+
+# Operating system files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>500 - Server Error | TrainBook</title>
+  
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-card" style="max-width: 500px; text-align: center;">
+    <div style="font-size: 3.5rem; margin-bottom: 8px;">🛑</div>
+    <h1 style="font-size: 3.5rem; font-weight: 900; color: var(--color-danger); margin-bottom: 0; line-height: 1;">500</h1>
+    <h2 style="font-size: 1.35rem; margin-top: 8px; color: var(--color-primary);">Signal System Failure</h2>
+    <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-xl); font-size: 0.95rem;">
+      We encountered an unexpected error while processing your railway reservation request. Our technical staff has been alerted.
+    </p>
+
+    <!-- Error message display if present in model -->
+    <div class="alert alert-danger" th:if="${message != null or error != null}" style="text-align: left; margin-bottom: var(--spacing-lg);">
+      <span style="font-size: 0.85rem;" th:text="${message != null ? message : error}">Internal Server Error Details</span>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: var(--spacing-sm);">
+      <a th:href="@{/trains/search}" class="btn btn-primary btn-lg">
+        <span>🏠</span> Return to Home
+      </a>
+      <a href="javascript:location.reload()" class="btn btn-secondary btn-lg">
+        Retry
+      </a>
+    </div>
+
+    <div class="auth-footer" style="margin-top: var(--spacing-xl);">
+      <span style="font-size: 0.82rem;">TrainBook System &copy; 2026 • SLIIT SE Project (2026-Y2-S1-MLB-B9G2-10)</span>
+    </div>
+  </div>
+
+</body>
+</html>

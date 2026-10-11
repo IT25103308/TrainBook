@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+  <div th:fragment="mapContent(isAdmin)">
+    <!-- Leaflet OpenStreetMap CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+      .map-container-card {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        margin-bottom: var(--spacing-xl);
+      }
+      #trainMap {
+        height: 620px;
+        width: 100%;
+        z-index: 1;
+      }
+      .train-marker-icon {
+        background: #ffffff;
+        border: 2px solid #2980b9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        font-size: 16px;
+        transition: all 0.5s ease-out;
+      }
+      .train-marker-icon.at-terminal {
+        border-color: #2980b9;
+        background: #ebf5fb;
+        animation: pulseBlue 2s infinite;
+      }
+      @keyframes pulseBlue {
+        0% { box-shadow: 0 0 0 0 rgba(41, 128, 185, 0.7); }
+        70% { box-shadow: 0 0 0 12px rgba(41, 128, 185, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(41, 128, 185, 0); }
+      }
+      .train-marker-icon.on-time {
+        border-color: #27ae60;
+        background: #e8f8f5;
+      }
+      .train-marker-icon.delayed {
+        border-color: #e67e22;
+        background: #fef5e7;
+        animation: pulseDelayed 2s infinite;
+      }
+      .train-marker-icon.cancelled {
+        border-color: #e74c3c;
+        background: #fdedec;
+      }
+      @keyframes pulseDelayed {
+        0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.7); }
+        70% { box-shadow: 0 0 0 12px rgba(230, 126, 34, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); }
+      }
+      .train-card-item {
+        padding: 12px 14px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .train-card-item:hover {
+        border-color: var(--color-primary);
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-2px);
+      }
+      .train-card-item.active {
+        border-color: var(--color-primary);
+        background: #f0f7ff;
+      }
+      .live-pulse {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #2ecc71;
+        margin-right: 6px;
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        animation: pulseGreen 1.8s infinite;
+      }
+      @keyframes pulseGreen {
+        0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+      }
+      @media (max-width: 992px) {
+        .live-map-grid {
+          grid-template-columns: 1fr !important;
+        }
+        #trainMap {
+          height: 480px !important;
+        }
+      }
+    </style>
+
+    <!-- Header & Live Feeder Status -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+      <div>
+        <h2 style="margin-bottom: 4px;" th:text="${'🗺️ Reported Train Positions'}">🗺️ Real-Time Train Live Map</h2>
+        <p style="color: var(--color-text-muted); margin: 0;" th:text="${'Reported or simulated positions. These are not verified physical GPS locations.'}">
+          Reported or simulated positions, not verified physical GPS locations.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div class="badge" style="background: #e8f8f5; color: #1e8449; border: 1px solid #a9dfbf; padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center;">
+          <span class="live-pulse"></span>
+          <span id="telemetryStatusText">Loading position reports…</span>
+        </div>
+
+        <!-- Admin Only Buttons -->
+        <a th:if="${isAdmin}" th:href="@{/notifications/status}" class="btn btn-secondary btn-sm">
+          <span>📢</span> Status & Delay Dispatcher
+        </a>
+
+        <!-- Passenger Quick Actions -->
+        <a th:unless="${isAdmin}" th:href="@{/trains/search}" class="btn btn-primary btn-sm">
+          <span>🔍</span> Search & Book Trains
+        </a>
+        <a th:href="@{/departure-board}" class="btn btn-outline btn-sm">
+          <span>📋</span> Departure Board
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Live Map & Side Rail Panel Layout -->
+    <div class="live-map-grid" style="display: grid; grid-template-columns: 1fr 340px; gap: var(--spacing-lg);">
+      <!-- Left: Interactive OpenStreetMap Card -->
+      <div class="map-container-card">
+        <div style="padding: 12px 16px; background: #fafbfc; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: 700; color: var(--color-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+            <span>📍 Sri Lanka Railway Network (OpenStreetMap)</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--color-text-muted);">
+            Last ping: <strong id="lastPingTime" style="font-family: var(--font-mono); color: var(--color-primary);">Just now</strong>
+          </div>
+        </div>
+
+        <!-- The Leaflet Map Canvas Container -->
+        <div id="trainMap"></div>
+      </div>
+
+      <!-- Right: Active Fleet Telemetry Cards -->
+      <div>
+        <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+          <div class="card-header" style="background: #fafbfc; justify-content: space-between; align-items: center;">
+            <h4 class="card-title" style="font-size: 1rem; margin: 0;">🚆 Reported Fleet (<span id="trainCount">0</span>)</h4>
+            <span class="badge badge-primary" style="font-size: 0.75rem;">Position reports</span>
+          </div>
+
+          <div class="card-body" style="padding: 12px; overflow-y: auto; max-height: 570px; flex: 1;">
+            <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 10px;">
+              Click any train card to focus and inspect its position report on the map:
+            </p>
+
+            <div id="trainCardsContainer" style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="text-align: center; color: var(--color-text-muted); padding: 20px;">
+                Loading reported positions...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Information Banner: Role-Adaptive -->
+    <div th:if="${isAdmin}" class="card" style="margin-top: var(--spacing-lg); background: #f8fbfd; border-color: #cde4f7;">
+      <div class="card-body" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 0.88rem; color: #2c3e50;">
+          <strong>📡 Telemetry Ingestion Endpoint:</strong>
+          <code style="background: #ffffff; padding: 3px 8px; border-radius: 4px; border: 1px solid #b3d7f5; margin-left: 6px; font-family: var(--font-mono); color: #0056b3;">
+            POST /api/trains/location/update (authorised session and CSRF token required)
+          </code>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--color-text-muted);">
+          <a th:href="@{/notifications/telemetry}">Add or update a position report</a>
+        </div>
+      </div>
+    </div>
+
+    <div th:unless="${isAdmin}" class="card" style="margin-top: var(--spacing-lg); background: #f8fbfd; border-color: #cde4f7;">
+      <div class="card-body" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 0.88rem; color: #2c3e50; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.2rem;">ℹ️</span>
+          <span><strong>Position reports:</strong> The page checks for reports every two seconds; the report timestamp shows their age. Click any train on the list or on the map to view detailed speed, status, and station proximity.</span>
+        </div>
+        <a th:href="@{/trains/search}" class="btn btn-primary btn-sm">Book Train Tickets</a>
+      </div>
+    </div>
+
+    <!-- Leaflet JS Library CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Real-Time Map Application Script -->
+    <script>
+      (function() {
+        // Initialize OpenStreetMap centered on Sri Lanka
+        if(typeof L==='undefined'){document.getElementById('trainMap').textContent='Map library unavailable. Use the Departure Board or Position Reports.';document.getElementById('telemetryStatusText').textContent='Map unavailable';document.getElementById('trainCardsContainer').textContent='Positions cannot be shown on this map.';return;}
+        const escapeText=value=>String(value??'Not recorded').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const map = L.map('trainMap', {
+          center: [7.8731, 80.7718],
+          zoom: 8,
+          minZoom: 7,
+          maxZoom: 18
+        });
+
+        // Add OpenStreetMap Standard Tile Layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors | Sri Lanka Railways',
+          maxZoom: 19
+        }).addTo(map);
+
+        // Define Sri Lanka Railway Corridors (Waypoints)
+        const railwayTracks = [
+          // Main Line: Colombo Fort -> Polgahawela -> Peradeniya -> Kandy -> Hatton -> Ella -> Badulla
+          {
+            name: 'Main Line (Colombo ➔ Kandy ➔ Badulla)',
+            color: '#2980b9',
+            coords: [
+              [6.9344, 79.8500], [6.9833, 79.9167], [7.0917, 79.9997], [7.1569, 80.0592],
+              [7.2433, 80.1294], [7.3325, 80.2975], [7.3242, 80.3956], [7.2542, 80.5211],
+              [7.2686, 80.5978], [7.2906, 80.6337], [7.0500, 80.5333], [6.8917, 80.6000],
+              [6.9400, 80.7500], [6.8667, 81.0467], [6.9897, 81.0558]
+            ]
+          },
+          // Coastal Line: Colombo Fort -> Kalutara -> Galle -> Matara
+          {
+            name: 'Coastal Line (Colombo ➔ Galle ➔ Matara)',
+            color: '#27ae60',
+            coords: [
+              [6.9344, 79.8500], [6.8380, 79.8633], [6.7730, 79.8816], [6.7134, 79.9074],
+              [6.5854, 79.9607], [6.4300, 79.9990], [6.2360, 80.0540], [6.1400, 80.1000],
+              [6.0535, 80.2210], [5.9720, 80.4280], [5.9496, 80.5469]
+            ]
+          },
+          // Northern Line: Polgahawela -> Kurunegala -> Maho -> Anuradhapura -> Vavuniya -> Jaffna
+          {
+            name: 'Northern Line (Polgahawela ➔ Anuradhapura ➔ Jaffna)',
+            color: '#8e44ad',
+            coords: [
+              [7.3325, 80.2975], [7.4863, 80.3623], [7.8167, 80.2500], [8.3114, 80.4037],
+              [8.7514, 80.4971], [9.3803, 80.3992], [9.6615, 80.0255]
+            ]
+          }
+        ];
+
+        // Draw Railway Corridors onto Map
+        railwayTracks.forEach(track => {
+          L.polyline(track.coords, {
+            color: track.color,
+            weight: 4,
+            opacity: 0.65,
+            dashArray: '6, 8'
+          }).addTo(map).bindTooltip(track.name, { sticky: true });
+        });
+
+        // Store active train Leaflet markers in memory: { trainId: L.marker }
+        const markers = {};
+        let selectedTrainId = null;
+
+        // Custom Marker Icon Generator
+        function createTrainIcon(status, tripDirection) {
+          let statusClass = 'on-time';
+          if (status === 'AT_TERMINAL') statusClass = 'at-terminal';
+          else if (status === 'DELAYED') statusClass = 'delayed';
+          else if (status === 'CANCELLED') statusClass = 'cancelled';
+
+          const iconChar = tripDirection === 'RETURN' ? '🚆' : '🚆';
+          return L.divIcon({
+            className: `train-marker-icon ${statusClass}`,
+            html: `<span>${iconChar}</span>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -18]
+          });
+        }
+
+        // Fetch live train telemetry from Spring Boot GET API
+        async function fetchLiveTrainLocations() {
+          try {
+            const response = await fetch('/api/trains/locations', { cache: 'no-store' });
+            if (!response.ok) throw new Error('Network response failed');
+
+            const trains = await response.json();
+            updateMapAndCards(trains);
+
+            document.getElementById('lastPingTime').textContent = new Date().toLocaleTimeString();
+            document.getElementById('telemetryStatusText').textContent = 'Position reports refreshed';
+          } catch (err) {
+            console.warn('Telemetry fetch error:', err);
+            document.getElementById('telemetryStatusText').textContent = 'Reports unavailable; displayed positions may be old';
+          }
+        }
+
+        // Update markers on the map and populate sidebar cards
+        function updateMapAndCards(trains) {
+          if (!Array.isArray(trains)) return;
+
+          document.getElementById('trainCount').textContent = trains.length;
+          const container = document.getElementById('trainCardsContainer');
+          let cardsHtml = '';
+
+          trains.forEach(t => {
+            const lat = Number(t.latitude);
+            const lng = Number(t.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat)>90 || Math.abs(lng)>180 || !Number.isSafeInteger(t.trainId) || t.trainId<=0) return;
+
+            const isDelayed = t.status === 'DELAYED';
+            const isCancelled = t.status === 'CANCELLED';
+            const isTerminal = t.status === 'AT_TERMINAL';
+            let statusBadge = '<span class="badge badge-success">🟢 ON TIME</span>';
+            if (isTerminal) statusBadge = '<span class="badge" style="background:#d4e6f1; color:#1b4f72;">🔵 AT TERMINAL</span>';
+            else if (isDelayed) statusBadge = '<span class="badge badge-warning">🟡 DELAYED</span>';
+            else if (isCancelled) statusBadge = '<span class="badge badge-danger">🔴 CANCELLED</span>';
+
+            const isReturn = t.tripDirection === 'RETURN';
+            const dirBadge = isReturn
+              ? '<span class="badge" style="background:#f4ecf7; color:#7d3c98; font-size:0.75rem; border:1px solid #d2b4de;">🔄 Return Trip</span>'
+              : '<span class="badge" style="background:#eaf2f8; color:#2471a3; font-size:0.75rem; border:1px solid #aed6f1;">➡️ Outbound</span>';
+
+            const popupContent = `
+              <div style="font-family: inherit; min-width: 220px; padding: 4px;">
+                <div style="font-weight: 800; font-size: 1.05rem; color: #1a365d; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px;">
+                  🚆 ${escapeText(t.trainNumber)} - ${escapeText(t.trainName)}
+                </div>
+                <div style="font-size: 0.85rem; margin-bottom: 4px;">
+                  <strong>Route:</strong> ${escapeText(t.route || 'Sri Lanka Railways')}
+                </div>
+                <div style="font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                  <span><strong>Direction:</strong></span>
+                  ${dirBadge}
+                </div>
+                <div style="font-size: 0.85rem; margin-bottom: 4px;">
+                  <strong>Status:</strong> ${statusBadge}
+                </div>
+                <div style="font-size: 0.85rem; margin-bottom: 4px;">
+                  <strong>Speed:</strong> <span style="font-weight: 700; color: #27ae60;">${Number.isFinite(t.speed) ? t.speed.toFixed(1) : 0} km/h</span>
+                </div>
+                <div style="font-size: 0.82rem; color: #666; margin-bottom: 4px;">
+                  <strong>Near:</strong> ${escapeText(t.currentStation || 'Not recorded')}
+                </div>
+                <div style="font-size: 0.75rem; color: #888; font-family: monospace;">
+                  ${t.simulated ? 'SIMULATED' : 'REPORTED'}: ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>Reported: ${escapeText(t.updatedAt)}
+                </div>
+              </div>
+            `;
+
+            // If marker already exists, smoothly update coordinates and icon
+            if (markers[t.trainId]) {
+              const marker = markers[t.trainId];
+              marker.setLatLng([lat, lng]);
+              marker.setIcon(createTrainIcon(t.status, t.tripDirection));
+              marker.setPopupContent(popupContent);
+            } else {
+              // Create new marker
+              const marker = L.marker([lat, lng], { icon: createTrainIcon(t.status, t.tripDirection) }).addTo(map);
+              marker.bindPopup(popupContent);
+              marker.on('click', () => {
+                highlightCard(t.trainId);
+              });
+              markers[t.trainId] = marker;
+            }
+
+            // Build right sidebar card
+            const activeClass = (selectedTrainId === t.trainId) ? 'active' : '';
+            cardsHtml += `
+              <div class="train-card-item ${activeClass}" id="card-train-${t.trainId}" onclick="focusTrainOnMap(${t.trainId}, ${lat}, ${lng})">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <strong style="color: var(--color-primary); font-size: 0.95rem;">${escapeText(t.trainNumber)} • ${escapeText(t.trainName)}</strong>
+                  ${statusBadge}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 4px;">
+                  <span>${escapeText(t.route || 'Not recorded')}</span>
+                  ${dirBadge}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #555;">
+                  <span>⚡ <strong>${Number.isFinite(t.speed) ? t.speed.toFixed(1) : 0} km/h</strong></span>
+                  <span>📍 ${escapeText(t.currentStation || 'Not recorded')}</span>
+                </div>
+              </div>
+            `;
+          });
+
+          const present=new Set(trains.map(t=>String(t.trainId)));
+          Object.keys(markers).forEach(id=>{if(!present.has(id)){map.removeLayer(markers[id]);delete markers[id];}});
+          container.innerHTML = cardsHtml || '<p>No positions have been reported. Use the departure board for service status.</p>';
+          document.getElementById('trainCount').textContent=Object.keys(markers).length;
+        }
+
+        // Focus & Zoom to a specific train when card is clicked
+        window.focusTrainOnMap = function(trainId, lat, lng) {
+          selectedTrainId = trainId;
+          highlightCard(trainId);
+
+          map.flyTo([lat, lng], 13, {
+            animate: true,
+            duration: 1.2
+          });
+
+          if (markers[trainId]) {
+            markers[trainId].openPopup();
+          }
+        };
+
+        function highlightCard(trainId) {
+          document.querySelectorAll('.train-card-item').forEach(el => el.classList.remove('active'));
+          const card = document.getElementById(`card-train-${trainId}`);
+          if (card) {
+            card.classList.add('active');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+
+        // Start initial load and recurring auto-poll every 2 seconds
+        fetchLiveTrainLocations();
+        setInterval(fetchLiveTrainLocations, 2000);
+      })();
+    </script>
+  </div>
+</body>
+</html>

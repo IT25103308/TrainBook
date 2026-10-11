@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service | TrainBook</title>
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+</head>
+<body class="auth-page">
+  <main class="auth-card" style="max-width: 620px;" aria-labelledby="policyTitle">
+    <header class="auth-header">
+      <h1 id="policyTitle" class="auth-title">Terms of Service</h1>
+      <p class="auth-subtitle">TrainBook student project · Short summary</p>
+    </header>
+    <p>TrainBook is a SLIIT project demonstration, not an official railway booking service.</p>
+    <ul style="padding-left: 20px; line-height: 1.7;">
+      <li style="margin-bottom: 12px;">Use test details, keep your login private, and do not misuse another passenger’s account.</li>
+      <li style="margin-bottom: 12px;">Seats are held for ten minutes after reservation succeeds. Unpaid holds expire automatically; cancelling a pending reservation releases its seats.</li>
+      <li style="margin-bottom: 12px;">Payments are simulated. No real charge is made, and demo tickets are not valid for travel.</li>
+      <li>Check the journey, date, passenger details and seats before confirming. Availability may change until your reservation succeeds.</li>
+    </ul>
+    <nav class="auth-footer" aria-label="Policy navigation">
+      <a th:href="@{/privacy}" href="/privacy">Privacy Policy</a>
+      <span aria-hidden="true"> · </span>
+      <a th:href="@{/register}" href="/register">Create an account</a>
+      <div style="margin-top: 12px;"><a th:href="@{/trains/search}" href="/trains/search">Back to TrainBook</a></div>
+    </nav>
+  </main>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::div.favorite-edit-page})}">
+<body><div class="favorite-edit-page container" style="max-width:680px;"><h2>Edit Favourite Route</h2><p class="form-hint">Choose a route configured by the railway coordinator.</p><div class="card"><div class="card-body">
+<form th:action="@{/passenger/favorites/{id}/edit(id=${favoriteId})}" th:object="${favoriteForm}" method="post">
+<input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger" role="alert"><div th:each="error : ${#fields.allErrors()}" th:text="${error}"></div></div>
+<div class="form-group"><label for="editOrigin" class="form-label">Origin</label><div class="station-picker"><select id="editOrigin" th:field="*{origin}" class="form-select" data-station-picker required><option value="">Choose origin</option><option th:each="station : ${stationNames}" th:value="${station}" th:text="${station}"></option></select></div></div>
+<div class="form-group"><label for="editDestination" class="form-label">Destination</label><div class="station-picker"><select id="editDestination" th:field="*{destination}" class="form-select" data-station-picker required><option value="">Choose destination</option><option th:each="station : ${stationNames}" th:value="${station}" th:text="${station}"></option></select></div></div>
+<div class="account-actions"><button type="submit" class="btn btn-primary">Save Changes</button> <a th:href="@{/passenger/profile#favourites}" class="btn btn-secondary">Cancel</a></div>
+</form></div></div><script th:src="@{/js/station-picker.js}" defer></script></div></body></html>

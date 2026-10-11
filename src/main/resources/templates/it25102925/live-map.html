@@ -1,0 +1,15 @@
+﻿<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.user-map-wrapper})}">
+<head>
+  <title>Live Train Tracking Map | TrainBook</title>
+</head>
+<body>
+  <div class="user-map-wrapper" style="padding: var(--spacing-xl) 0;">
+    <div class="container">
+      <div th:replace="~{it25102925/live-map-fragment :: mapContent(false)}"></div>
+    </div>
+  </div>
+</body>
+</html>

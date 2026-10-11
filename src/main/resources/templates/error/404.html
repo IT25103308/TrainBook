@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Page Not Found | TrainBook</title>
+  
+  <link rel="stylesheet" th:href="@{/css/variables.css}" href="/css/variables.css">
+  <link rel="stylesheet" th:href="@{/css/global.css}" href="/css/global.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-card" style="max-width: 500px; text-align: center;">
+    <div style="font-size: 3.5rem; margin-bottom: 8px;">🛤️</div>
+    <h1 style="font-size: 3.5rem; font-weight: 900; color: var(--color-primary); margin-bottom: 0; line-height: 1;">404</h1>
+    <h2 style="font-size: 1.35rem; margin-top: 8px; color: var(--color-primary);">Lost on the Tracks?</h2>
+    <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-xl); font-size: 0.95rem;">
+      The train schedule or page you are looking for has either departed, changed platforms, or does not exist.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: var(--spacing-sm);">
+      <a th:href="@{/trains/search}" class="btn btn-primary btn-lg">
+        <span>🔍</span> Search Trains
+      </a>
+      <a href="javascript:history.back()" class="btn btn-secondary btn-lg">
+        Go Back
+      </a>
+    </div>
+
+    <div class="auth-footer" style="margin-top: var(--spacing-xl);">
+      <span style="font-size: 0.82rem;">TrainBook System &copy; 2026 • SLIIT SE Project (2026-Y2-S1-MLB-B9G2-10)</span>
+    </div>
+  </div>
+
+</body>
+</html>

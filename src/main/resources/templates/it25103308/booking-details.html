@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::div.booking-details-wrapper})}">
+<head><title>Correct Passenger Details | TrainBook</title></head>
+<body>
+<div class="booking-details-wrapper container container-sm">
+  <h2>Correct passenger details</h2>
+  <p style="color:var(--color-text-muted);">Changes apply to this unpaid reservation. Your seats, fare and original hold deadline stay the same.</p>
+  <div class="alert alert-warning" data-persistent style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <span id="detailsHoldMessage">Complete your changes and payment before the hold expires.</span>
+    <strong id="detailsHoldTimer" role="timer" th:text="${checkoutHold.displayTime}">Checking</strong>
+  </div>
+  <div th:if="${detailsError != null}" class="alert alert-danger" data-persistent role="alert" th:text="${detailsError}"></div>
+  <div class="card" style="margin-bottom:var(--spacing-lg);">
+    <div class="card-header"><h3>Reservation <span th:text="${'RES-' + booking.id}"></span></h3></div>
+    <div class="card-body">
+      <strong th:text="${booking.trainName}"></strong>
+      <p th:text="${booking.origin + ' → ' + booking.destination + ' · ' + #temporals.format(booking.travelDate,'dd MMM yyyy') + ' at ' + booking.departureTime}"></p>
+      <p><span th:text="${booking.seatClass + ' class · ' + booking.seatCount + ' seat(s)'}"></span><br>
+        <strong th:text="${booking.seatNumbers}"></strong></p>
+      <strong th:text="${'LKR ' + #numbers.formatDecimal(booking.totalAmount,1,'COMMA',2,'POINT')}"></strong>
+    </div>
+  </div>
+  <div class="card"><div class="card-body">
+    <form id="seatBookingForm" class="no-loading" th:object="${bookingDetails}"
+          th:action="@{/booking/{id}/details(id=${booking.id})}" method="post">
+      <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <fieldset id="detailsFields" style="border:0;padding:0;margin:0;min-width:0;">
+        <div class="form-group">
+          <label class="form-label" for="passengerName">Primary Passenger Name</label>
+          <input class="form-control" id="passengerName" th:field="*{passengerName}" maxlength="100" required autocomplete="name" aria-describedby="passengerNameError">
+          <small id="passengerNameError" class="text-danger" role="alert" hidden></small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="documentType">Identity Document</label>
+          <select class="form-select" id="documentType" th:field="*{documentType}" required>
+            <option value="" disabled>Choose document type</option>
+            <option value="NIC">Sri Lankan NIC</option>
+            <option value="SRI_LANKAN_PASSPORT">Sri Lankan Passport</option>
+            <option value="FOREIGN_PASSPORT">Foreign Passport</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="documentNumberLabel" for="passengerNic">Document Number</label>
+          <input class="form-control" id="passengerNic" th:field="*{passengerNic}" maxlength="20" required autocomplete="off" aria-describedby="documentNumberHint passengerNicError">
+          <small id="documentNumberHint" style="color:var(--color-text-muted);">Use the number printed on your document.</small>
+          <small id="passengerNicError" class="text-danger" role="alert" hidden></small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="contactPhone">Contact Phone Number</label>
+          <input class="form-control" id="contactPhone" th:field="*{contactPhone}" maxlength="20" required autocomplete="tel" inputmode="tel" aria-describedby="contactPhoneError">
+          <small id="contactPhoneError" class="text-danger" role="alert" hidden></small>
+        </div>
+        <button id="saveDetailsButton" type="submit" class="btn btn-primary">Save &amp; Return to Payment</button>
+      </fieldset>
+    </form>
+    <a th:href="@{/booking/{id}/payment(id=${booking.id})}" class="btn btn-secondary" style="margin-top:12px;">Back to payment</a>
+  </div></div>
+  <script th:src="@{/js/passenger-details.js}"></script>
+  <script th:src="@{/js/payment-hold.js}"></script>
+  <script th:src="@{/js/booking-details-hold.js}"></script>
+  <script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      PassengerDetails.mount();
+      BookingDetailsHold.mount(/*[[${checkoutHold.remainingMillis}]]*/ 0);
+    });
+  </script>
+</div>
+</body></html>

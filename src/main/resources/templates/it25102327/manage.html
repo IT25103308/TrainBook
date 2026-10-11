@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en" 
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin-base :: layout(~{::div.manage-trains-wrapper})}">
+<head>
+  <title>Manage Trains & Timetables | Admin Console</title>
+</head>
+<body>
+  <div class="manage-trains-wrapper">
+    <!-- Header with Quick Action Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+      <div>
+        <h2>Manage Fleet & Train Timetables</h2>
+        <p style="color: var(--color-text-muted);">Configure rolling stock, edit seat allocations, and manage operational route timetables</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <a href="#addNewTrainSection" class="btn btn-secondary">
+          <span>🚆</span> Add New Train
+        </a>
+        <a href="#addNewScheduleSection" class="btn btn-accent">
+          <span>📅</span> Add New Timetable
+        </a>
+      </div>
+    </div>
+
+    <!-- ================= 1. REGISTERED FLEET TABLE ================= -->
+    <div class="card" style="margin-bottom: var(--spacing-xl);">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Registered Fleet & Capacities</h3>
+        <span class="badge badge-primary" th:text="${trains != null ? trains.size() + ' Total Trains' : '0 Trains'}">Total Trains</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Train Number</th>
+              <th>Train Name</th>
+              <th>Total Seats</th>
+              <th>1st Class Seats</th>
+              <th>2nd Class Seats</th>
+              <th>Status</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Empty state -->
+            <tr th:if="${trains == null or trains.empty}">
+              <td colspan="7" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
+                No trains registered yet. Use the form below to add a new train to the fleet.
+              </td>
+            </tr>
+
+            <!-- Trains Loop -->
+            <tr th:each="train : ${trains}">
+              <td>
+                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--color-primary);" 
+                      th:text="${train.trainNumber != null ? train.trainNumber : 'TR-101'}">TR-1015</span>
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--color-primary);" th:text="${train.trainName != null ? train.trainName : 'Udarata Menike'}">Udarata Menike</div>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted);" th:text="${train.trainType != null ? train.trainType : 'Express Intercity'}">Express Intercity</div>
+              </td>
+              <td>
+                <strong th:text="${train.totalSeats != null ? train.totalSeats : (train.firstClassSeats != null and train.secondClassSeats != null ? train.firstClassSeats + train.secondClassSeats : 120)}">120</strong>
+              </td>
+              <td>
+                <span class="badge badge-info" th:text="${train.firstClassSeats != null ? train.firstClassSeats + ' seats' : '40 seats'}">40 seats</span>
+              </td>
+              <td>
+                <span class="badge badge-primary" th:text="${train.secondClassSeats != null ? train.secondClassSeats + ' seats' : '80 seats'}">80 seats</span>
+              </td>
+              <td>
+                <span class="badge badge-ontime" th:if="${train.status == null or train.status.name() == 'ACTIVE' or train.status.name() == 'ON_TIME'}">Active</span>
+                <span class="badge badge-warning" th:if="${train.status != null and (train.status.name() == 'MAINTENANCE' or train.status.name() == 'DELAYED')}">Maintenance</span>
+                <span class="badge badge-cancelled" th:if="${train.status != null and (train.status.name() == 'CANCELLED' or train.status.name() == 'INACTIVE')}">Inactive</span>
+              </td>
+              <td>
+                <div class="table-actions" style="justify-content: flex-end; gap: 4px;">
+                  <!-- Edit Train Button -->
+                  <button type="button" class="btn btn-outline btn-sm" title="Edit Train Details"
+                          th:data-id="${train.id}"
+                          th:data-number="${train.trainNumber}"
+                          th:data-name="${train.trainName}"
+                          th:data-type="${train.trainType}"
+                          th:data-first="${train.firstClassSeats}"
+                          th:data-second="${train.secondClassSeats}"
+                          th:data-status="${train.status != null ? train.status.name() : 'ON_TIME'}"
+                          onclick="populateEditTrain(this)">
+                    ✏️ Edit
+                  </button>
+
+                  <!-- Status Quick Update Form -->
+                  <form th:action="@{/trains/{id}/status(id=${train.id})}" method="post" style="display: inline; margin: 0;">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <input type="hidden" name="status" th:value="${train.status != null and train.status.name() == 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE'}" />
+                    <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Active / Maintenance">
+                      ⚙️ Status
+                    </button>
+                  </form>
+
+                  <!-- Delete Train Form -->
+                  <form th:action="@{/trains/{id}/delete(id=${train.id})}" method="post" style="display: inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete this train? All associated schedules may be affected.');">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit" class="btn btn-danger btn-sm" title="Delete Train">
+                      🗑️
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 2. MASTER TIMETABLES & SCHEDULES TABLE ================= -->
+    <div class="card" style="margin-bottom: var(--spacing-xl);" th:if="${schedules != null}">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 class="card-title">Master Timetables, Routes & Platforms</h3>
+          <span class="badge badge-primary" th:text="${schedules.size() + ' Active Schedules'}">Active Schedules</span>
+        </div>
+        <a href="#addNewScheduleSection" class="btn btn-accent btn-sm">
+          <span>➕</span> Add Timetable
+        </a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Train Service</th>
+              <th>Route (Origin ➔ Destination)</th>
+              <th>Departure ➔ Arrival</th>
+              <th>Day of Week</th>
+              <th>Platform</th>
+              <th>1st / 2nd Fare</th>
+              <th>Status</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${schedules.empty}">
+              <td colspan="9" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
+                No timetable schedules registered yet. Click "Add New Timetable" below to define a schedule.
+              </td>
+            </tr>
+
+            <tr th:each="sch : ${schedules}">
+              <td style="font-family: var(--font-mono); font-weight: 700;" th:text="${'#SCH-' + sch.id}">#SCH-1</td>
+              <td>
+                <div style="font-weight: 600; color: var(--color-primary);" th:text="${sch.trainName != null ? sch.trainName : 'Train Service'}">Udarata Menike</div>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted);" th:text="${sch.trainNumber != null ? 'Train #' + sch.trainNumber : ''}">#1015</div>
+              </td>
+              <td>
+                <div style="font-weight: 600;" th:text="${(sch.origin != null ? sch.origin : 'Origin') + ' ➔ ' + (sch.destination != null ? sch.destination : 'Destination')}">
+                  Colombo Fort ➔ Kandy
+                </div>
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--color-text-dark);" th:text="${sch.departureTime + ' ➔ ' + sch.arrivalTime}">05:55 ➔ 09:15</div>
+              </td>
+              <td>
+                <span class="badge badge-secondary" th:text="${sch.dayOfWeek}">MONDAY</span>
+              </td>
+              <td>
+                <span class="badge badge-info" th:text="${sch.defaultPlatform != null ? sch.defaultPlatform : 'Platform 1'}">Platform 1</span>
+              </td>
+              <td>
+                <span th:text="${'LKR ' + sch.firstClassFare + ' / ' + sch.secondClassFare}">LKR 1,800 / 1,000</span>
+              </td>
+              <td>
+                <span class="badge badge-accent" th:if="${sch.isSeasonal != null and sch.isSeasonal}" th:text="${sch.seasonalName != null ? sch.seasonalName : 'Seasonal'}">Seasonal</span>
+                <span class="badge badge-danger" th:if="${sch.isMaintenanceBlocked != null and sch.isMaintenanceBlocked}" th:text="${sch.maintenanceNotes != null ? sch.maintenanceNotes : 'Blocked'}">Blocked</span>
+                <span class="badge badge-ontime" th:if="${(sch.isSeasonal == null or !sch.isSeasonal) and (sch.isMaintenanceBlocked == null or !sch.isMaintenanceBlocked)}">Active</span>
+              </td>
+              <td style="text-align: right;">
+                <div class="table-actions" style="justify-content: flex-end; gap: 4px;">
+                  <!-- Edit Schedule Button -->
+                  <button type="button" class="btn btn-outline btn-sm" title="Edit Timetable Schedule"
+                          th:data-id="${sch.id}"
+                          th:data-trainid="${sch.trainId}"
+                          th:data-routeid="${sch.routeId}"
+                          th:data-deptime="${sch.departureTime}"
+                          th:data-arrtime="${sch.arrivalTime}"
+                          th:data-day="${sch.dayOfWeek}"
+                          th:data-firstfare="${sch.firstClassFare}"
+                          th:data-secondfare="${sch.secondClassFare}"
+                          th:data-active="${sch.isActive}"
+                          onclick="populateEditSchedule(this)">
+                    ✏️ Edit
+                  </button>
+
+                  <!-- Toggle Seasonal Override -->
+                  <form th:action="@{/schedules/seasonal/override}" method="post" style="display: inline; margin: 0;">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <input type="hidden" name="scheduleId" th:value="${sch.id}" />
+                    <input type="hidden" name="isSeasonal" th:value="${sch.isSeasonal != null and sch.isSeasonal ? 'false' : 'true'}" />
+                    <input type="hidden" name="seasonalName" value="Holiday Special Timetable" />
+                    <button type="submit" class="btn btn-secondary btn-sm" th:title="${sch.isSeasonal != null and sch.isSeasonal ? 'Disable Seasonal Override' : 'Enable Seasonal Override'}">
+                      ⭐ Seasonal
+                    </button>
+                  </form>
+
+                  <!-- Toggle Maintenance Block -->
+                  <form th:action="@{/schedules/maintenance/block}" method="post" style="display: inline; margin: 0;">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <input type="hidden" name="scheduleId" th:value="${sch.id}" />
+                    <input type="hidden" name="blocked" th:value="${sch.isMaintenanceBlocked != null and sch.isMaintenanceBlocked ? 'false' : 'true'}" />
+                    <input type="hidden" name="notes" value="Scheduled track inspection" />
+                    <button type="submit" class="btn btn-warning btn-sm" th:title="${sch.isMaintenanceBlocked != null and sch.isMaintenanceBlocked ? 'Lift Maintenance Block' : 'Activate Maintenance Block'}">
+                      🔧 Block
+                    </button>
+                  </form>
+
+                  <!-- Delete Schedule -->
+                  <form th:action="@{/schedules/{id}/delete(id=${sch.id})}" method="post" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this schedule?');">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit" class="btn btn-danger btn-sm" title="Delete Schedule">
+                      🗑️
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 3. EDIT TRAIN SECTION (DYNAMIC COLLAPSIBLE) ================= -->
+    <div id="editTrainSection" class="card" style="display: none; margin-bottom: var(--spacing-xl); border: 2px solid var(--color-primary);">
+      <div class="card-header" style="background: rgba(15, 45, 78, 0.05); display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title" id="editTrainTitle">✏️ Update Existing Train</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeEditTrain()">✕ Cancel</button>
+      </div>
+      <div class="card-body">
+        <form id="editTrainForm" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="editTrainNumber">Train Number</label>
+              <input type="text" id="editTrainNumber" name="trainNumber" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editTrainName">Train Name</label>
+              <input type="text" id="editTrainName" name="trainName" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editTrainType">Train Type</label>
+              <select id="editTrainType" name="trainType" class="form-select">
+                <option value="Express Intercity">Express Intercity</option>
+                <option value="Night Mail">Night Mail</option>
+                <option value="Commuter / Slow">Commuter / Slow</option>
+                <option value="LUXURY_TOURIST">Luxury Tourist</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editFirstClassSeats">1st Class (AC) Seats</label>
+              <input type="number" id="editFirstClassSeats" name="firstClassSeats" class="form-control" min="0" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSecondClassSeats">2nd Class Seats</label>
+              <input type="number" id="editSecondClassSeats" name="secondClassSeats" class="form-control" min="0" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editStatus">Operational Status</label>
+              <select id="editStatus" name="status" class="form-select">
+                <option value="ACTIVE">Active (In Service)</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+            <button type="button" class="btn btn-secondary" onclick="closeEditTrain()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Train Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= 4. ADD NEW TRAIN SECTION ================= -->
+    <div id="addNewTrainSection" class="card" style="margin-bottom: var(--spacing-xl);">
+      <div class="card-header">
+        <h3 class="card-title">🚆 Add New Train to Fleet</h3>
+      </div>
+      <div class="card-body">
+        <form th:action="@{/trains/add}" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="trainNumber">Train Number</label>
+              <input type="text" id="trainNumber" name="trainNumber" class="form-control" placeholder="e.g. 1025" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="trainName">Train Name</label>
+              <input type="text" id="trainName" name="trainName" class="form-control" placeholder="e.g. Tikiri Menike" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="trainType">Train Type</label>
+              <select id="trainType" name="trainType" class="form-select">
+                <option value="Express Intercity">Express Intercity</option>
+                <option value="Night Mail">Night Mail</option>
+                <option value="Commuter / Slow">Commuter / Slow</option>
+                <option value="LUXURY_TOURIST">Luxury Tourist</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="firstClassSeats">1st Class (AC) Seats</label>
+              <input type="number" id="firstClassSeats" name="firstClassSeats" class="form-control" min="0" value="40" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="secondClassSeats">2nd Class Seats</label>
+              <input type="number" id="secondClassSeats" name="secondClassSeats" class="form-control" min="0" value="80" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="status">Initial Status</label>
+              <select id="status" name="status" class="form-select">
+                <option value="ACTIVE">Active (In Service)</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+            <button type="reset" class="btn btn-secondary">Clear Form</button>
+            <button type="submit" class="btn btn-primary">Save New Train</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= 5. EDIT TIMETABLE SCHEDULE SECTION (DYNAMIC COLLAPSIBLE) ================= -->
+    <div id="editScheduleSection" class="card" style="display: none; margin-bottom: var(--spacing-xl); border: 2px solid var(--color-accent);">
+      <div class="card-header" style="background: rgba(224, 86, 36, 0.05); display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title" id="editScheduleTitle">✏️ Update Timetable Schedule</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeEditSchedule()">✕ Cancel</button>
+      </div>
+      <div class="card-body">
+        <form id="editScheduleForm" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="editSchTrainId">Assigned Train</label>
+              <select id="editSchTrainId" name="trainId" class="form-select" required>
+                <option th:each="t : ${trains}" th:value="${t.id}" th:text="${t.trainName + ' (#' + t.trainNumber + ')'}">Train</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchRouteId">Route (Origin ➔ Destination)</label>
+              <select id="editSchRouteId" name="routeId" class="form-select" required>
+                <option th:each="r : ${routes}" th:value="${r.id}" th:text="${r.origin + ' ➔ ' + r.destination + (r.distanceKm != null ? ' (' + r.distanceKm + ' km)' : '')}">Route</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchDepTime">Departure Time</label>
+              <input type="time" id="editSchDepTime" name="departureTime" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchArrTime">Arrival Time</label>
+              <input type="time" id="editSchArrTime" name="arrivalTime" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchDay">Day of Week</label>
+              <select id="editSchDay" name="dayOfWeek" class="form-select" required>
+                <option value="MONDAY">Monday</option>
+                <option value="TUESDAY">Tuesday</option>
+                <option value="WEDNESDAY">Wednesday</option>
+                <option value="THURSDAY">Thursday</option>
+                <option value="FRIDAY">Friday</option>
+                <option value="SATURDAY">Saturday</option>
+                <option value="SUNDAY">Sunday</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchFirstFare">1st Class Fare (LKR)</label>
+              <input type="number" step="10" id="editSchFirstFare" name="firstClassFare" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchSecondFare">2nd Class Fare (LKR)</label>
+              <input type="number" step="10" id="editSchSecondFare" name="secondClassFare" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editSchActive">Schedule Status</label>
+              <select id="editSchActive" name="isActive" class="form-select">
+                <option value="true">Active (Bookable)</option>
+                <option value="false">Inactive / Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+            <button type="button" class="btn btn-secondary" onclick="closeEditSchedule()">Cancel</button>
+            <button type="submit" class="btn btn-accent">Save Timetable Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= 6. ADD NEW TIMETABLE SCHEDULE SECTION ================= -->
+    <div id="addNewScheduleSection" class="card">
+      <div class="card-header">
+        <h3 class="card-title">📅 Add New Train Timetable Schedule</h3>
+      </div>
+      <div class="card-body">
+        <form th:action="@{/schedules}" method="post">
+          <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--spacing-md);">
+            <div class="form-group">
+              <label class="form-label" for="newSchTrainId">Select Train</label>
+              <select id="newSchTrainId" name="trainId" class="form-select" required>
+                <option value="" disabled selected>-- Select a Train --</option>
+                <option th:each="t : ${trains}" th:value="${t.id}" th:text="${t.trainName + ' (#' + t.trainNumber + ' - ' + t.totalSeats + ' seats)'}">Train</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newSchRouteId">Select Route</label>
+              <select id="newSchRouteId" name="routeId" class="form-select" required>
+                <option value="" disabled selected>-- Select Route --</option>
+                <option th:each="r : ${routes}" th:value="${r.id}" th:text="${r.origin + ' ➔ ' + r.destination + (r.distanceKm != null ? ' (' + r.distanceKm + ' km)' : '')}">Route</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="departureTime">Departure Time</label>
+              <input type="time" id="departureTime" name="departureTime" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="arrivalTime">Arrival Time</label>
+              <input type="time" id="arrivalTime" name="arrivalTime" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="dayOfWeek">Day of Week</label>
+              <select id="dayOfWeek" name="dayOfWeek" class="form-select" required>
+                <option value="MONDAY">Monday</option>
+                <option value="TUESDAY">Tuesday</option>
+                <option value="WEDNESDAY">Wednesday</option>
+                <option value="THURSDAY">Thursday</option>
+                <option value="FRIDAY">Friday</option>
+                <option value="SATURDAY">Saturday</option>
+                <option value="SUNDAY">Sunday</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="firstClassFare">1st Class Fare (LKR)</label>
+              <input type="number" step="10" id="firstClassFare" name="firstClassFare" class="form-control" placeholder="Dynamic if empty">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="secondClassFare">2nd Class Fare (LKR)</label>
+              <input type="number" step="10" id="secondClassFare" name="secondClassFare" class="form-control" placeholder="Dynamic if empty">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="isActive">Schedule State</label>
+              <select id="isActive" name="isActive" class="form-select">
+                <option value="true">Active (Bookable)</option>
+                <option value="false">Inactive / Draft</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+            <button type="reset" class="btn btn-secondary">Clear Form</button>
+            <button type="submit" class="btn btn-primary">Create Timetable Schedule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Interactive JavaScript for Dynamic Train and Schedule Editing inside manage-trains-wrapper -->
+    <script>
+      function populateEditTrain(btn) {
+        const id = btn.getAttribute('data-id');
+        const number = btn.getAttribute('data-number') || '';
+        const name = btn.getAttribute('data-name') || '';
+        const type = btn.getAttribute('data-type') || 'Express Intercity';
+        const first = btn.getAttribute('data-first') || '40';
+        const second = btn.getAttribute('data-second') || '80';
+        const status = btn.getAttribute('data-status') || 'ACTIVE';
+
+        document.getElementById('editTrainForm').action = '/trains/' + id;
+        document.getElementById('editTrainNumber').value = number;
+        document.getElementById('editTrainName').value = name;
+        document.getElementById('editTrainType').value = type;
+        document.getElementById('editFirstClassSeats').value = first;
+        document.getElementById('editSecondClassSeats').value = second;
+        document.getElementById('editStatus').value = status;
+        document.getElementById('editTrainTitle').textContent = '✏️ Update Train: ' + name + ' (#' + number + ')';
+
+        const sec = document.getElementById('editTrainSection');
+        sec.style.display = 'block';
+        sec.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function closeEditTrain() {
+        document.getElementById('editTrainSection').style.display = 'none';
+      }
+
+      function populateEditSchedule(btn) {
+        const id = btn.getAttribute('data-id');
+        const trainId = btn.getAttribute('data-trainid') || '';
+        const routeId = btn.getAttribute('data-routeid') || '';
+        const depTime = btn.getAttribute('data-deptime') || '';
+        const arrTime = btn.getAttribute('data-arrtime') || '';
+        const day = btn.getAttribute('data-day') || 'MONDAY';
+        const firstFare = btn.getAttribute('data-firstfare') || '1500';
+        const secondFare = btn.getAttribute('data-secondfare') || '800';
+        const active = btn.getAttribute('data-active') === 'true' ? 'true' : 'false';
+
+        document.getElementById('editScheduleForm').action = '/schedules/' + id;
+        if (trainId) document.getElementById('editSchTrainId').value = trainId;
+        if (routeId) document.getElementById('editSchRouteId').value = routeId;
+        document.getElementById('editSchDepTime').value = depTime.substring(0, 5);
+        document.getElementById('editSchArrTime').value = arrTime.substring(0, 5);
+        document.getElementById('editSchDay').value = day;
+        document.getElementById('editSchFirstFare').value = firstFare;
+        document.getElementById('editSchSecondFare').value = secondFare;
+        document.getElementById('editSchActive').value = active;
+        document.getElementById('editScheduleTitle').textContent = '✏️ Update Timetable Schedule #SCH-' + id;
+
+        const sec = document.getElementById('editScheduleSection');
+        sec.style.display = 'block';
+        sec.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function closeEditSchedule() {
+        document.getElementById('editScheduleSection').style.display = 'none';
+      }
+    </script>
+  </div>
+</body>
+</html>

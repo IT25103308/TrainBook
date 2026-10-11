@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(~{::div.rebook-page-wrapper})}"><head><title>Choose Replacement | TrainBook</title></head><body>
+<div class="rebook-page-wrapper container container-sm"><h2>Choose a replacement departure</h2><p style="color:var(--color-text-muted);">For an eligible paid ticket on a cancelled departure. The replacement must use the same route and class and depart within 24 hours of your original departure.</p>
+<div class="alert alert-danger" data-persistent th:if="${offerError!=null}" th:text="${offerError}"></div>
+<a th:href="@{/passenger/bookings}" class="btn btn-secondary btn-sm">My Bookings</a>
+<div th:if="${offerError==null}" style="margin-top:20px;">
+ <div class="card" style="margin-bottom:20px;"><div class="card-header"><h3>Original paid reservation</h3></div><div class="card-body">
+  <strong th:text="${booking.trainName}"></strong><p th:text="${booking.origin+' → '+booking.destination+' · '+#temporals.format(booking.travelDate,'dd MMM yyyy')+' at '+booking.departureTime}"></p>
+  <p th:text="${booking.seatClass+' class · '+booking.seatCount+' seat(s)'}"></p>
+  <strong th:text="${'Fare already paid: LKR '+#numbers.formatDecimal(booking.totalAmount,1,'COMMA',2,'POINT')}"></strong>
+  <p>No additional payment. Your existing ticket will show the replacement journey and allocated seats.</p>
+  <small th:text="${'Offer expires: '+#temporals.format(offer.expiresAt,'dd MMM yyyy, HH:mm')}"></small>
+ </div></div>
+ <div th:if="${alternatives.empty}" class="alert alert-info" data-persistent>No matching replacement currently has enough seats in the eligible time window. Your offer is not used; check again before expiry or contact the coordinator.</div>
+ <article th:each="option:${alternatives}" class="card" style="margin-bottom:16px;"><div class="card-body">
+  <h3 th:text="${option.trainName+' (#'+option.trainNumber+')'}"></h3>
+  <p th:text="${#temporals.format(option.date,'dd MMM yyyy')+' · '+option.departure+' → '+option.arrival+(option.arrivalDayOffset==1?' (+1 day)':'')}"></p>
+  <p th:text="${option.seatClass+' class · '+option.availableSeats+' seats currently available'}"></p>
+  <form th:action="@{/rebooking/claim/{token}(token=${token})}" method="post">
+   <input type="hidden" name="newScheduleId" th:value="${option.scheduleId}"><input type="hidden" name="newTravelDate" th:value="${option.dateIso}">
+   <button class="btn btn-primary">Reserve replacement seats — no extra charge</button>
+  </form>
+  <small style="color:var(--color-text-muted);">Seats are checked and allocated again when you continue. Viewing this page does not reserve them.</small>
+ </div></article>
+</div></div></body></html>
